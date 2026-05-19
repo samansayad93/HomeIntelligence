@@ -1,23 +1,26 @@
 #include <DHT/dht.h>
 
-DHT dht(DHT_PIN,DHT_TYPE);
+DHT dht(DHT_PIN, DHT_TYPE);
 
-void setupDHT(){
+void setupDHT()
+{
     dht.begin();
 }
 
-float readHumidity(){
+float readHumidity()
+{
     float input = dht.readHumidity();
-    if (isnan(input)){
-
+    if (isnan(input))
+    {
     }
     return input;
 }
 
-float readTemperature(){
+float readTemperature()
+{
     float input = dht.readTemperature();
-    if (isnan(input)){
-
+    if (isnan(input))
+    {
     }
     return input;
 }

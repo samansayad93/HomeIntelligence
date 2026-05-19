@@ -1,0 +1,18 @@
+#ifndef RF_GENERAL_H
+#define RF_GENERAL_H
+
+#include <config.h>
+
+struct Signal
+{
+    String name;
+    uint32_t code;
+    uint16_t bits;
+    uint16_t protocol;
+    uint16_t pulse;
+};
+
+extern Signal signals[];
+extern size_t signalCount;
+
+#endif

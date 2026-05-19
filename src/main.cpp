@@ -3,14 +3,16 @@
 #include <DHT/dht.h>
 #include <PIR/pir.h>
 
-void setup() {
+void setup()
+{
     Serial.begin(115200);
     delay(200);
     setupDHT();
     setupPIR();
 }
 
-void loop(){
+void loop()
+{
     int LDR = readLDR();
     Serial.println(String(LDR));
     float temp = readTemperature();

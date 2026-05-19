@@ -1,14 +1,19 @@
 #include <PIR/pir.h>
 
-void setupPIR(){
-    pinMode(PIR_PIN,INPUT);
+void setupPIR()
+{
+    pinMode(PIR_PIN, INPUT);
 }
 
-int readPIR(){
+int readPIR()
+{
     int input = digitalRead(PIR_PIN);
-    if (input == HIGH){
+    if (input == HIGH)
+    {
         return 1;
-    } else {
+    }
+    else
+    {
         return 0;
     }
 }
