@@ -1,6 +1,6 @@
 #include <RF/receiver.h>
 
-bool readRFRX(const String& name)
+bool readRFSignal(const String& name)
 {
     if (!mySwitch.available())
     {

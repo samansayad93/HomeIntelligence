@@ -3,6 +3,6 @@
 
 #include <RF/general.h>
 
-bool transmitRFSignal(const Signal* signal);
+bool transmitRFSignal(const RFSignal* signal);
 
 #endif

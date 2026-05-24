@@ -24,7 +24,7 @@ bool saveRFSignals()
         return false;
     }
 
-    File f = LittleFS.open(FILE_PATH, "w");
+    File f = LittleFS.open(RF_FILE_PATH, "w");
     if (!f)
     {
         Serial.println("Failed to open RF signal file for writing");
@@ -61,13 +61,13 @@ bool loadRFSignals()
         return false;
     }
 
-    if (!LittleFS.exists(FILE_PATH))
+    if (!LittleFS.exists(RF_FILE_PATH))
     {
         signalCount = 0;
         return true;
     }
 
-    File f = LittleFS.open(FILE_PATH, "r");
+    File f = LittleFS.open(RF_FILE_PATH, "r");
     if (!f)
     {
         Serial.println("Failed to open RF signal file for reading");
@@ -112,10 +112,131 @@ bool loadRFSignals()
     return true;
 }
 
-Signal* findRFSignalByName(const String& name){
+RFSignal* findRFSignalByName(const String& name){
     for (size_t i=0;i<signalCount;i++){
         if (signals[i].name == name){
             return &signals[i];
+        }
+    }
+    return nullptr;
+}
+
+bool saveIRSignals()
+{
+    if (!ensureLittleFS())
+    {
+        return false;
+    }
+
+    File f = LittleFS.open(IR_FILE_PATH, "w");
+    if (!f)
+    {
+        Serial.println("Failed to open IR signal file for writing");
+        return false;
+    }
+
+    JsonDocument doc;
+    JsonArray arr = doc.to<JsonArray>();
+
+    for (size_t i = 0; i < irSignalCount; i++)
+    {
+        JsonObject obj = arr.add<JsonObject>();
+        obj["name"] = irSignals[i].name;
+        obj["protocol"] = static_cast<int16_t>(irSignals[i].protocol);
+        obj["value"] = irSignals[i].value;
+        obj["bits"] = irSignals[i].bits;
+
+        JsonArray raw = obj["raw"].to<JsonArray>();
+        for (uint16_t j = 0; j < irSignals[i].rawLength; j++)
+        {
+            raw.add(irSignals[i].rawData[j]);
+        }
+    }
+
+    if (serializeJsonPretty(doc, f) == 0)
+    {
+        f.close();
+        return false;
+    }
+
+    f.close();
+    return true;
+}
+
+bool loadIRSignals()
+{
+    if (!ensureLittleFS())
+    {
+        return false;
+    }
+
+    if (!LittleFS.exists(IR_FILE_PATH))
+    {
+        irSignalCount = 0;
+        return true;
+    }
+
+    File f = LittleFS.open(IR_FILE_PATH, "r");
+    if (!f)
+    {
+        Serial.println("Failed to open IR signal file for reading");
+        return false;
+    }
+
+    JsonDocument doc;
+    DeserializationError err = deserializeJson(doc, f);
+    f.close();
+
+    if (err)
+    {
+        Serial.print("IR JSON parse failed: ");
+        Serial.println(err.c_str());
+        irSignalCount = 0;
+        return false;
+    }
+
+    if (!doc.is<JsonArray>())
+    {
+        Serial.println("IR signal file must contain a JSON array");
+        irSignalCount = 0;
+        return false;
+    }
+
+    JsonArray arr = doc.as<JsonArray>();
+    irSignalCount = 0;
+
+    for (JsonObject obj : arr)
+    {
+        if (irSignalCount >= MAX_SIGNALS)
+            break;
+
+        JsonArray raw = obj["raw"].as<JsonArray>();
+        if (raw.isNull() || raw.size() == 0)
+            continue;
+
+        IRSignal& signal = irSignals[irSignalCount];
+        signal.name = obj["name"] | "";
+        signal.protocol = static_cast<decode_type_t>(obj["protocol"] | static_cast<int16_t>(decode_type_t::UNKNOWN));
+        signal.value = obj["value"] | 0;
+        signal.bits = obj["bits"] | 0;
+        signal.rawLength = min(static_cast<uint16_t>(raw.size()), static_cast<uint16_t>(MAX_IR_RAW_LENGTH));
+
+        for (uint16_t i = 0; i < signal.rawLength; i++)
+        {
+            signal.rawData[i] = raw[i] | 0;
+        }
+
+        irSignalCount++;
+    }
+
+    return true;
+}
+
+IRSignal* findIRSignalByName(const String& name)
+{
+    for (size_t i=0;i<irSignalCount;i++){
+        if (irSignals[i].name == name){
+            return &irSignals[i];
         }
     }
     return nullptr;

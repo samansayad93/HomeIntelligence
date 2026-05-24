@@ -1,6 +1,6 @@
 #include <RF/general.h>
 
-Signal signals[MAX_SIGNALS];
+RFSignal signals[MAX_SIGNALS];
 size_t signalCount = 0;
 
 RCSwitch mySwitch = RCSwitch();

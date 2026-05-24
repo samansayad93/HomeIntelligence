@@ -4,10 +4,14 @@
 #include <LittleFS.h>
 #include <ArduinoJson.h>
 #include <RF/general.h>
+#include <IR/general.h>
 
 bool saveRFSignals();
 bool loadRFSignals();
+bool saveIRSignals();
+bool loadIRSignals();
 
-Signal* findRFSignalByName(const String& name);
+RFSignal* findRFSignalByName(const String& name);
+IRSignal* findIRSignalByName(const String& name);
 
 #endif

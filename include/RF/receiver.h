@@ -3,6 +3,6 @@
 
 #include <RF/general.h>
 
-bool readRFRX(const String& name);
+bool readRFSignal(const String& name);
 
 #endif

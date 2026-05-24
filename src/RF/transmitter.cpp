@@ -1,6 +1,6 @@
 #include <RF/transmitter.h>
 
-bool transmitRFSignal(const Signal* signal){
+bool transmitRFSignal(const RFSignal* signal){
     if (signal == nullptr || signal->code == 0 || signal->bits == 0)
     {
         return false;

@@ -4,7 +4,7 @@
 #include <config.h>
 #include <RCSwitch.h>
 
-struct Signal
+struct RFSignal
 {
     String name;
     uint32_t code;
@@ -15,7 +15,7 @@ struct Signal
 
 extern RCSwitch mySwitch;
 
-extern Signal signals[];
+extern RFSignal signals[];
 extern size_t signalCount;
 
 void setupRF();
