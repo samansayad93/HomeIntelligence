@@ -8,4 +8,6 @@
 bool saveRFSignals();
 bool loadRFSignals();
 
+Signal* findRFSignalByName(const String& name);
+
 #endif

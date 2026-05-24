@@ -2,6 +2,7 @@
 #define RF_GENERAL_H
 
 #include <config.h>
+#include <RCSwitch.h>
 
 struct Signal
 {
@@ -12,7 +13,11 @@ struct Signal
     uint16_t pulse;
 };
 
+extern RCSwitch mySwitch;
+
 extern Signal signals[];
 extern size_t signalCount;
+
+void setupRF();
 
 #endif

@@ -1,10 +1,33 @@
 #include <Memory/memory.h>
 
+static bool ensureLittleFS()
+{
+    static bool mounted = false;
+    if (mounted)
+    {
+        return true;
+    }
+
+    mounted = LittleFS.begin(true);
+    if (!mounted)
+    {
+        Serial.println("LittleFS mount failed");
+    }
+
+    return mounted;
+}
+
 bool saveRFSignals()
 {
+    if (!ensureLittleFS())
+    {
+        return false;
+    }
+
     File f = LittleFS.open(FILE_PATH, "w");
     if (!f)
     {
+        Serial.println("Failed to open RF signal file for writing");
         return false;
     }
 
@@ -33,6 +56,11 @@ bool saveRFSignals()
 
 bool loadRFSignals()
 {
+    if (!ensureLittleFS())
+    {
+        return false;
+    }
+
     if (!LittleFS.exists(FILE_PATH))
     {
         signalCount = 0;
@@ -42,6 +70,7 @@ bool loadRFSignals()
     File f = LittleFS.open(FILE_PATH, "r");
     if (!f)
     {
+        Serial.println("Failed to open RF signal file for reading");
         return false;
     }
 
@@ -53,6 +82,13 @@ bool loadRFSignals()
     {
         Serial.print("JSON parse failed: ");
         Serial.println(err.c_str());
+        signalCount = 0;
+        return false;
+    }
+
+    if (!doc.is<JsonArray>())
+    {
+        Serial.println("RF signal file must contain a JSON array");
         signalCount = 0;
         return false;
     }
@@ -74,4 +110,13 @@ bool loadRFSignals()
     }
 
     return true;
+}
+
+Signal* findRFSignalByName(const String& name){
+    for (size_t i=0;i<signalCount;i++){
+        if (signals[i].name == name){
+            return &signals[i];
+        }
+    }
+    return nullptr;
 }
