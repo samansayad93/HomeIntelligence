@@ -1,5 +1,6 @@
 #include <config.h>
 #include <LDR/ldr.h>
+#include <MQ2/mq2.h>
 #include <DHT/dht.h>
 #include <PIR/pir.h>
 #include <Memory/memory.h>
@@ -14,6 +15,8 @@ String receiveName = "";
 bool receivingRF = false;
 bool receivingIR = false;
 unsigned long lastSensorPrint = 0;
+unsigned long mq2ReadyAt = 0;
+unsigned long nextMQ2ReadAt = 0;
 
 void printHelp()
 {
@@ -70,6 +73,39 @@ void listIRSignals()
         Serial.print(irSignals[i].bits);
         Serial.print(" rawLength=");
         Serial.println(irSignals[i].rawLength);
+    }
+}
+
+void printMQ2()
+{
+    unsigned long now = millis();
+
+    if (mq2ReadyAt == 0)
+    {
+        mq2ReadyAt = now + MQ2_PREHEAT_DURATION;
+        nextMQ2ReadAt = mq2ReadyAt;
+        Serial.println("MQ2 warming up...");
+        return;
+    }
+
+    if (now < mq2ReadyAt)
+    {
+        return;
+    }
+
+    if (now < nextMQ2ReadAt)
+    {
+        return;
+    }
+
+    int gas = readMQ2();
+    Serial.print("MQ2=");
+    Serial.println(gas);
+
+    nextMQ2ReadAt += MQ2_READ_INTERVAL;
+    if (now > nextMQ2ReadAt)
+    {
+        nextMQ2ReadAt = now + MQ2_READ_INTERVAL;
     }
 }
 
@@ -336,29 +372,37 @@ void printSensors()
 {
     if (millis() - lastSensorPrint < SENSOR_READ_INTERVAL)
     {
+        printMQ2();
         return;
     }
 
-    
     int LDR = readLDR();
-    Serial.println(String(LDR));
+    Serial.print("LDR=");
+    Serial.println(LDR);
     float temp = readTemperature();
-    Serial.println(String(temp));
+    Serial.print("TEMP=");
+    Serial.println(temp);
     float humidity = readHumidity();
-    Serial.println(String(humidity));
+    Serial.print("HUM=");
+    Serial.println(humidity);
     int motion = readPIR();
-    Serial.println(String(motion));
+    Serial.print("PIR=");
+    Serial.println(motion);
     lastSensorPrint = millis();
+    printMQ2();
 }
 
 void setup()
 {
     Serial.begin(115200);
     delay(200);
+    setupMQ2();
     setupDHT();
     setupPIR();
     setupRF();
     setupIR();
+    mq2ReadyAt = millis() + MQ2_PREHEAT_DURATION;
+    nextMQ2ReadAt = mq2ReadyAt;
     loadRFSignals();
     loadIRSignals();
     printHelp();
