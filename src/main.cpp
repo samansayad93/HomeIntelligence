@@ -1,6 +1,7 @@
 #include <config.h>
 #include <LDR/ldr.h>
 #include <MQ2/mq2.h>
+#include <MQTT/mqtt.h>
 #include <DHT/dht.h>
 #include <PIR/pir.h>
 #include <Memory/memory.h>
@@ -18,6 +19,8 @@ unsigned long lastSensorPrint = 0;
 unsigned long mq2ReadyAt = 0;
 unsigned long nextMQ2ReadAt = 0;
 
+void handleMqttCommand(const String& command);
+
 void printHelp()
 {
     Serial.println("Commands:");
@@ -27,6 +30,7 @@ void printHelp()
     Serial.println("  ir rx <name>  - wait for an IR signal and save it");
     Serial.println("  ir tx <name>  - transmit a saved IR signal");
     Serial.println("  ir list       - list saved IR signals");
+    Serial.println("  MQTT command topic: inteligence/command");
     Serial.println("  help          - show this help");
 }
 
@@ -101,6 +105,7 @@ void printMQ2()
     int gas = readMQ2();
     Serial.print("MQ2=");
     Serial.println(gas);
+    publishMQTT("sensor/mq2", String(gas));
 
     nextMQ2ReadAt += MQ2_READ_INTERVAL;
     if (now > nextMQ2ReadAt)
@@ -308,6 +313,11 @@ void handleSerialCommand(const String& command)
     Serial.println("Unknown command. Type: help");
 }
 
+void handleMqttCommand(const String& command)
+{
+    handleSerialCommand(command);
+}
+
 void handleSerial()
 {
     if (!Serial.available())
@@ -376,6 +386,7 @@ void printSensors()
         return;
     }
 
+    Serial.println(".............................");
     int LDR = readLDR();
     Serial.print("LDR=");
     Serial.println(LDR);
@@ -388,6 +399,20 @@ void printSensors()
     int motion = readPIR();
     Serial.print("PIR=");
     Serial.println(motion);
+    Serial.println(".............................");
+
+    String payload = "{";
+    payload += "\"ldr\":";
+    payload += LDR;
+    payload += ",\"temperature\":";
+    payload += isnan(temp) ? "null" : String(temp, 1);
+    payload += ",\"humidity\":";
+    payload += isnan(humidity) ? "null" : String(humidity, 1);
+    payload += ",\"motion\":";
+    payload += motion;
+    payload += "}";
+    publishMQTT("sensor/all", payload);
+
     lastSensorPrint = millis();
     printMQ2();
 }
@@ -401,6 +426,7 @@ void setup()
     setupPIR();
     setupRF();
     setupIR();
+    setupMQTT(handleMqttCommand);
     mq2ReadyAt = millis() + MQ2_PREHEAT_DURATION;
     nextMQ2ReadAt = mq2ReadyAt;
     loadRFSignals();
@@ -411,7 +437,8 @@ void setup()
 void loop()
 {
     handleSerial();
-    handleRFReceive();
-    handleIRReceive();
+    //handleMQTT();
+    //handleRFReceive();
+    //handleIRReceive();
     printSensors();
 }
