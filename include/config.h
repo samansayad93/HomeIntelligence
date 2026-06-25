@@ -3,6 +3,10 @@
 
 #include <Arduino.h>
 
+const char PROVISIONING_FILE_PATH[] = "/provisioning.json";
+const char PROVISIONING_AP_SSID[] = "Inteligence-Setup";
+const char PROVISIONING_AP_PASSWORD[] = "123456";
+
 const char RF_FILE_PATH[] = "/rf_signals.json";
 const char IR_FILE_PATH[] = "/ir_signals.json";
 const size_t MAX_SIGNALS = 20;

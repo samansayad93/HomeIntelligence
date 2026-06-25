@@ -5,6 +5,7 @@
 #include <DHT/dht.h>
 #include <PIR/pir.h>
 #include <Memory/memory.h>
+#include <Provisioning/provisioning.h>
 #include <IR/general.h>
 #include <IR/receiver.h>
 #include <IR/transmitter.h>
@@ -421,6 +422,12 @@ void setup()
 {
     Serial.begin(115200);
     delay(200);
+
+    if (!isProvisioned())
+    {
+        runProvisioningPortal();
+    }
+
     setupMQ2();
     setupDHT();
     setupPIR();
@@ -438,7 +445,7 @@ void loop()
 {
     handleSerial();
     //handleMQTT();
-    //handleRFReceive();
-    //handleIRReceive();
+    handleRFReceive();
+    handleIRReceive();
     printSensors();
 }

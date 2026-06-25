@@ -1,5 +1,6 @@
 #include <MQTT/mqtt.h>
 
+#include <Provisioning/provisioning.h>
 #include <PubSubClient.h>
 #include <WiFi.h>
 
@@ -48,10 +49,17 @@ static void connectWiFi()
         return;
     }
 
+    const char* ssid = provisioningConfig.wifiSSID.length() > 0
+        ? provisioningConfig.wifiSSID.c_str()
+        : WIFI_SSID;
+    const char* wpass = provisioningConfig.wifiPassword.length() > 0
+        ? provisioningConfig.wifiPassword.c_str()
+        : WIFI_PASSWORD;
+
     WiFi.mode(WIFI_STA);
-    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+    WiFi.begin(ssid, wpass);
     Serial.print("Connecting WiFi to ");
-    Serial.println(WIFI_SSID);
+    Serial.println(ssid);
 }
 
 static bool connectMQTT()
@@ -62,15 +70,28 @@ static bool connectMQTT()
         return false;
     }
 
+    const char* host = provisioningConfig.mqttHost.length() > 0
+        ? provisioningConfig.mqttHost.c_str()
+        : MQTT_HOST;
+    uint16_t port = provisioningConfig.mqttPort > 0
+        ? provisioningConfig.mqttPort
+        : MQTT_PORT;
+    const char* mqttUser = provisioningConfig.mqttUser.length() > 0
+        ? provisioningConfig.mqttUser.c_str()
+        : MQTT_USER;
+    const char* mqttPass = provisioningConfig.mqttPassword.length() > 0
+        ? provisioningConfig.mqttPassword.c_str()
+        : MQTT_PASSWORD;
+
     Serial.print("Connecting MQTT to ");
-    Serial.print(MQTT_HOST);
+    Serial.print(host);
     Serial.print(":");
-    Serial.println(MQTT_PORT);
+    Serial.println(port);
 
     bool connected = false;
-    if (strlen(MQTT_USER) > 0)
+    if (strlen(mqttUser) > 0)
     {
-        connected = mqttClient.connect(MQTT_CLIENT_ID, MQTT_USER, MQTT_PASSWORD);
+        connected = mqttClient.connect(MQTT_CLIENT_ID, mqttUser, mqttPass);
     }
     else
     {
@@ -95,9 +116,17 @@ static bool connectMQTT()
 void setupMQTT(MqttCommandHandler commandHandler)
 {
     mqttCommandHandler = commandHandler;
+
+    const char* host = provisioningConfig.mqttHost.length() > 0
+        ? provisioningConfig.mqttHost.c_str()
+        : MQTT_HOST;
+    uint16_t port = provisioningConfig.mqttPort > 0
+        ? provisioningConfig.mqttPort
+        : MQTT_PORT;
+
     WiFi.setAutoReconnect(true);
     connectWiFi();
-    mqttClient.setServer(MQTT_HOST, MQTT_PORT);
+    mqttClient.setServer(host, port);
     mqttClient.setCallback(mqttCallback);
 }
 
