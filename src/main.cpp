@@ -31,7 +31,7 @@ void printHelp()
     Serial.println("  ir rx <name>  - wait for an IR signal and save it");
     Serial.println("  ir tx <name>  - transmit a saved IR signal");
     Serial.println("  ir list       - list saved IR signals");
-    Serial.println("  MQTT command topic: inteligence/command");
+    Serial.println("  MQTT command topic: homeinteligence/command");
     Serial.println("  help          - show this help");
 }
 
@@ -106,7 +106,7 @@ void printMQ2()
     int gas = readMQ2();
     Serial.print("MQ2=");
     Serial.println(gas);
-    publishMQTT("sensor/mq2", String(gas));
+    publishMQTT("sensor/MQ2", String(gas));
 
     nextMQ2ReadAt += MQ2_READ_INTERVAL;
     if (now > nextMQ2ReadAt)
@@ -146,6 +146,12 @@ void handleSerialCommand(const String& command)
             if (signalCount >= MAX_SIGNALS)
             {
                 Serial.println("RF signal storage is full");
+                return;
+            }
+
+            if (findRFSignalByName(name) != nullptr)
+            {
+                Serial.println("IR signal name already exists");
                 return;
             }
 
@@ -204,9 +210,16 @@ void handleSerialCommand(const String& command)
                 return;
             }
 
+            if (findIRSignalByName(name) != nullptr)
+            {
+                Serial.println("IR signal name already exists");
+                return;
+            }
+
             receiveName = name;
             receivingIR = true;
             receivingRF = false;
+            resetIRReceiver();
             Serial.print("Waiting for IR signal named: ");
             Serial.println(receiveName);
             return;
@@ -246,62 +259,6 @@ void handleSerialCommand(const String& command)
         }
 
         Serial.println("Unknown command. Type: help");
-        return;
-    }
-
-    if (action == "rx")
-    {
-        String name = argument;
-        if (name.length() == 0)
-        {
-            Serial.println("Missing signal name. Use: rx <name>");
-            return;
-        }
-
-        if (signalCount >= MAX_SIGNALS)
-        {
-            Serial.println("RF signal storage is full");
-            return;
-        }
-
-        receiveName = name;
-        receivingRF = true;
-        Serial.print("Waiting for RF signal named: ");
-        Serial.println(receiveName);
-        return;
-    }
-
-    if (action == "tx")
-    {
-        String name = argument;
-        if (name.length() == 0)
-        {
-            Serial.println("Missing signal name. Use: tx <name>");
-            return;
-        }
-
-        RFSignal* signal = findRFSignalByName(name);
-        if (signal == nullptr)
-        {
-            Serial.println("RF signal not found");
-            return;
-        }
-
-        if (transmitRFSignal(signal))
-        {
-            Serial.print("Transmitted RF signal: ");
-            Serial.println(name);
-        }
-        else
-        {
-            Serial.println("Failed to transmit RF signal");
-        }
-        return;
-    }
-
-    if (action == "list")
-    {
-        listRFSignals();
         return;
     }
 
@@ -381,6 +338,10 @@ void handleIRReceive()
 
 void printSensors()
 {
+    if (receivingIR || receivingRF){
+        return;
+    }
+
     if (millis() - lastSensorPrint < SENSOR_READ_INTERVAL)
     {
         printMQ2();
@@ -391,28 +352,20 @@ void printSensors()
     int LDR = readLDR();
     Serial.print("LDR=");
     Serial.println(LDR);
+    publishMQTT("sensor/LDR", String(LDR));
     float temp = readTemperature();
     Serial.print("TEMP=");
     Serial.println(temp);
+    publishMQTT("sensor/TEMP", isnan(temp) ? "0" : String(temp, 1));
     float humidity = readHumidity();
     Serial.print("HUM=");
     Serial.println(humidity);
+    publishMQTT("sensor/HUM", isnan(humidity) ? "0" : String(humidity, 1));
     int motion = readPIR();
     Serial.print("PIR=");
     Serial.println(motion);
+    publishMQTT("sensor/PIR", String(motion));
     Serial.println(".............................");
-
-    String payload = "{";
-    payload += "\"ldr\":";
-    payload += LDR;
-    payload += ",\"temperature\":";
-    payload += isnan(temp) ? "null" : String(temp, 1);
-    payload += ",\"humidity\":";
-    payload += isnan(humidity) ? "null" : String(humidity, 1);
-    payload += ",\"motion\":";
-    payload += motion;
-    payload += "}";
-    publishMQTT("sensor/all", payload);
 
     lastSensorPrint = millis();
     printMQ2();
@@ -444,7 +397,7 @@ void setup()
 void loop()
 {
     handleSerial();
-    //handleMQTT();
+    handleMQTT();
     handleRFReceive();
     handleIRReceive();
     printSensors();

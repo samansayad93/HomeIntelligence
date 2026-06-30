@@ -3,6 +3,7 @@
 
 #include <IR/general.h>
 
+void resetIRReceiver();
 bool readIRSignal(const String& name);
 
 #endif

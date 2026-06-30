@@ -20,7 +20,7 @@ const uint16_t MQTT_PORT = 1883;
 const char MQTT_CLIENT_ID[] = "esp32-inteligence";
 const char MQTT_USER[] = "";
 const char MQTT_PASSWORD[] = "";
-const char MQTT_BASE_TOPIC[] = "inteligence";
+const char MQTT_BASE_TOPIC[] = "homeinteligence";
 
 #define MQTT_RECONNECT_INTERVAL 5000
 
@@ -39,8 +39,8 @@ const char MQTT_BASE_TOPIC[] = "inteligence";
 #define IR_RX_PIN 14
 #define IR_TX_PIN 25
 
-#define SENSOR_READ_INTERVAL 5000
-#define MQ2_PREHEAT_DURATION 20000
-#define MQ2_READ_INTERVAL 5000
+#define SENSOR_READ_INTERVAL 10000
+#define MQ2_PREHEAT_DURATION 40000
+#define MQ2_READ_INTERVAL 10000
 
 #endif
