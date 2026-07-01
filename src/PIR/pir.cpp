@@ -1,5 +1,7 @@
 #include <PIR/pir.h>
 
+bool motionDetectionEnabled = false;
+
 void setupPIR()
 {
     pinMode(PIR_PIN, INPUT);
@@ -15,5 +17,31 @@ int readPIR()
     else
     {
         return 0;
+    }
+}
+
+void turnONMotionDetection()
+{
+    motionDetectionEnabled = true;
+}
+
+void turnOFFMotionDetection()
+{
+    motionDetectionEnabled = false;
+}
+
+void checkMotionDetection()
+{
+    if (!motionDetectionEnabled)
+    {
+        return;
+    }
+
+    int motion = readPIR();
+    if (motion == 1)
+    {
+        Serial.println("Motion detected!");
+        publishMQTT("alarm", "motion detected");
+        startAlarm();
     }
 }

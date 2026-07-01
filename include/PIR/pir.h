@@ -2,8 +2,13 @@
 #define PIR_H
 
 #include <config.h>
+#include <Alarm/alarm.h>
+#include <MQTT/mqtt.h>
 
 void setupPIR();
 int readPIR();
+void turnONMotionDetection();
+void turnOFFMotionDetection();
+void checkMotionDetection();
 
 #endif

@@ -1,4 +1,5 @@
 #include <config.h>
+#include <Alarm/alarm.h>
 #include <LDR/ldr.h>
 #include <MQ2/mq2.h>
 #include <MQTT/mqtt.h>
@@ -31,6 +32,8 @@ void printHelp()
     Serial.println("  ir rx <name>  - wait for an IR signal and save it");
     Serial.println("  ir tx <name>  - transmit a saved IR signal");
     Serial.println("  ir list       - list saved IR signals");
+    Serial.println("  buzzer on     - turn on the buzzer");
+    Serial.println("  buzzer off    - turn off the buzzer");
     Serial.println("  MQTT command topic: homeinteligence/command");
     Serial.println("  help          - show this help");
 }
@@ -104,6 +107,11 @@ void printMQ2()
     }
 
     int gas = readMQ2();
+    if (gas > MQ2_THRESHOLD){
+        Serial.println("MQ2 threshold exceeded!");
+        publishMQTT("alarm", "MQ2 threshold exceeded!");
+        startAlarm();
+    }
     Serial.print("MQ2=");
     Serial.println(gas);
     publishMQTT("sensor/MQ2", String(gas));
@@ -262,6 +270,24 @@ void handleSerialCommand(const String& command)
         return;
     }
 
+    
+    if (action == "buzzer")
+    {
+        int subSeparator = argument.indexOf(' ');
+        String subAction = subSeparator == -1 ? argument : argument.substring(0, subSeparator);
+        String name = subSeparator == -1 ? "" : argument.substring(subSeparator + 1);
+
+        if (subAction == "on")
+        {
+            startAlarm();
+        }
+
+        if (subAction == "off")
+        {
+            stopAlarm();
+        }
+    }
+
     if (action == "help")
     {
         printHelp();
@@ -384,6 +410,7 @@ void setup()
     setupMQ2();
     setupDHT();
     setupPIR();
+    setupBuzzer();
     setupRF();
     setupIR();
     setupMQTT(handleMqttCommand);
@@ -400,5 +427,7 @@ void loop()
     handleMQTT();
     handleRFReceive();
     handleIRReceive();
+    updateAlarm();
+    checkMotionDetection();
     printSensors();
 }

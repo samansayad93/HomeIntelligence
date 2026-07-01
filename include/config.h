@@ -33,6 +33,8 @@ const char MQTT_BASE_TOPIC[] = "homeinteligence";
 
 #define PIR_PIN 13
 
+#define BUZZER_PIN 12
+
 #define RF_RX_PIN 27
 #define RF_TX_PIN 26
 
@@ -42,5 +44,8 @@ const char MQTT_BASE_TOPIC[] = "homeinteligence";
 #define SENSOR_READ_INTERVAL 10000
 #define MQ2_PREHEAT_DURATION 40000
 #define MQ2_READ_INTERVAL 10000
+#define MQ2_THRESHOLD 600
+
+#define BUZZER_DUTY_CYCLE_INTERVAL 2000
 
 #endif
