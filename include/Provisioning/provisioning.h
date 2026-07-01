@@ -16,7 +16,7 @@ struct ProvisioningConfig
 extern ProvisioningConfig provisioningConfig;
 
 bool loadProvisioningConfig();
-bool saveProvisioningConfig(const ProvisioningConfig& cfg);
+bool saveProvisioningConfig(const ProvisioningConfig &cfg);
 bool isProvisioned();
 void runProvisioningPortal();
 

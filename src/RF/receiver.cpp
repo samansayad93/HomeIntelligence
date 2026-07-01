@@ -1,6 +1,7 @@
 #include <RF/receiver.h>
+#include <Memory/memory.h>
 
-bool readRFSignal(const String& name)
+bool readRFSignal(const String &name)
 {
     if (!mySwitch.available())
     {
@@ -27,4 +28,33 @@ bool readRFSignal(const String& name)
 
     mySwitch.resetAvailable();
     return true;
+}
+
+bool handleRFReceive(bool &receivingRF, const String &receiveName)
+{
+    if (!receivingRF)
+    {
+        return false;
+    }
+
+    if (readRFSignal(receiveName))
+    {
+        receivingRF = false;
+        if (saveRFSignals())
+        {
+            Serial.print("Saved RF signal: ");
+            Serial.println(receiveName);
+            return true;
+        }
+        else
+        {
+            if (signalCount > 0)
+            {
+                signalCount--;
+            }
+            Serial.println("Received RF signal, but failed to save it");
+        }
+    }
+
+    return false;
 }

@@ -24,5 +24,6 @@ extern IRSignal irSignals[];
 extern size_t irSignalCount;
 
 void setupIR();
+void listIRSignals();
 
 #endif

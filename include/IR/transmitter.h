@@ -3,6 +3,6 @@
 
 #include <IR/general.h>
 
-bool transmitIRSignal(const IRSignal* signal);
+bool transmitIRSignal(const IRSignal *signal);
 
 #endif

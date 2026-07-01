@@ -157,7 +157,7 @@ bool loadProvisioningConfig()
     return provisioningConfig.wifiSSID.length() > 0 && provisioningConfig.mqttHost.length() > 0;
 }
 
-bool saveProvisioningConfig(const ProvisioningConfig& cfg)
+bool saveProvisioningConfig(const ProvisioningConfig &cfg)
 {
     if (!ensureLittleFS())
     {

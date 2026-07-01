@@ -21,7 +21,7 @@ unsigned long lastSensorPrint = 0;
 unsigned long mq2ReadyAt = 0;
 unsigned long nextMQ2ReadAt = 0;
 
-void handleMqttCommand(const String& command);
+void handleMqttCommand(const String &command);
 
 void printHelp()
 {
@@ -36,52 +36,6 @@ void printHelp()
     Serial.println("  buzzer off    - turn off the buzzer");
     Serial.println("  MQTT command topic: homeinteligence/command");
     Serial.println("  help          - show this help");
-}
-
-void listRFSignals()
-{
-    if (signalCount == 0)
-    {
-        Serial.println("No RF signals saved");
-        return;
-    }
-
-    for (size_t i = 0; i < signalCount; i++)
-    {
-        Serial.print(i + 1);
-        Serial.print(". ");
-        Serial.print(signals[i].name);
-        Serial.print(" code=");
-        Serial.print(signals[i].code);
-        Serial.print(" bits=");
-        Serial.print(signals[i].bits);
-        Serial.print(" protocol=");
-        Serial.print(signals[i].protocol);
-        Serial.print(" pulse=");
-        Serial.println(signals[i].pulse);
-    }
-}
-
-void listIRSignals()
-{
-    if (irSignalCount == 0)
-    {
-        Serial.println("No IR signals saved");
-        return;
-    }
-
-    for (size_t i = 0; i < irSignalCount; i++)
-    {
-        Serial.print(i + 1);
-        Serial.print(". ");
-        Serial.print(irSignals[i].name);
-        Serial.print(" protocol=");
-        Serial.print(typeToString(irSignals[i].protocol));
-        Serial.print(" bits=");
-        Serial.print(irSignals[i].bits);
-        Serial.print(" rawLength=");
-        Serial.println(irSignals[i].rawLength);
-    }
 }
 
 void printMQ2()
@@ -107,7 +61,8 @@ void printMQ2()
     }
 
     int gas = readMQ2();
-    if (gas > MQ2_THRESHOLD){
+    if (gas > MQ2_THRESHOLD)
+    {
         Serial.println("MQ2 threshold exceeded!");
         publishMQTT("alarm", "MQ2 threshold exceeded!");
         startAlarm();
@@ -123,7 +78,7 @@ void printMQ2()
     }
 }
 
-void handleSerialCommand(const String& command)
+void handleSerialCommand(const String &command)
 {
     int separator = command.indexOf(' ');
     String action = separator == -1 ? command : command.substring(0, separator);
@@ -159,7 +114,7 @@ void handleSerialCommand(const String& command)
 
             if (findRFSignalByName(name) != nullptr)
             {
-                Serial.println("IR signal name already exists");
+                Serial.println("RF signal name already exists");
                 return;
             }
 
@@ -179,7 +134,7 @@ void handleSerialCommand(const String& command)
                 return;
             }
 
-            RFSignal* signal = findRFSignalByName(name);
+            RFSignal *signal = findRFSignalByName(name);
             if (signal == nullptr)
             {
                 Serial.println("RF signal not found");
@@ -241,7 +196,7 @@ void handleSerialCommand(const String& command)
                 return;
             }
 
-            IRSignal* signal = findIRSignalByName(name);
+            IRSignal *signal = findIRSignalByName(name);
             if (signal == nullptr)
             {
                 Serial.println("IR signal not found");
@@ -270,7 +225,6 @@ void handleSerialCommand(const String& command)
         return;
     }
 
-    
     if (action == "buzzer")
     {
         int subSeparator = argument.indexOf(' ');
@@ -297,7 +251,7 @@ void handleSerialCommand(const String& command)
     Serial.println("Unknown command. Type: help");
 }
 
-void handleMqttCommand(const String& command)
+void handleMqttCommand(const String &command)
 {
     handleSerialCommand(command);
 }
@@ -318,53 +272,10 @@ void handleSerial()
     }
 }
 
-void handleRFReceive()
-{
-    if (!receivingRF)
-    {
-        return;
-    }
-
-    if (readRFSignal(receiveName))
-    {
-        receivingRF = false;
-        if (saveRFSignals())
-        {
-            Serial.print("Saved RF signal: ");
-            Serial.println(receiveName);
-        }
-        else
-        {
-            Serial.println("Received RF signal, but failed to save it");
-        }
-    }
-}
-
-void handleIRReceive()
-{
-    if (!receivingIR)
-    {
-        return;
-    }
-
-    if (readIRSignal(receiveName))
-    {
-        receivingIR = false;
-        if (saveIRSignals())
-        {
-            Serial.print("Saved IR signal: ");
-            Serial.println(receiveName);
-        }
-        else
-        {
-            Serial.println("Received IR signal, but failed to save it");
-        }
-    }
-}
-
 void printSensors()
 {
-    if (receivingIR || receivingRF){
+    if (receivingIR || receivingRF)
+    {
         return;
     }
 
@@ -425,8 +336,8 @@ void loop()
 {
     handleSerial();
     handleMQTT();
-    handleRFReceive();
-    handleIRReceive();
+    handleRFReceive(receivingRF, receiveName);
+    handleIRReceive(receivingIR, receiveName);
     updateAlarm();
     checkMotionDetection();
     printSensors();

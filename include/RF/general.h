@@ -19,5 +19,6 @@ extern RFSignal signals[];
 extern size_t signalCount;
 
 void setupRF();
+void listRFSignals();
 
 #endif

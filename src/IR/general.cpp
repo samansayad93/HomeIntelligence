@@ -11,3 +11,25 @@ void setupIR()
     irReceiver.enableIRIn();
     irTransmitter.begin();
 }
+
+void listIRSignals()
+{
+    if (irSignalCount == 0)
+    {
+        Serial.println("No IR signals saved");
+        return;
+    }
+
+    for (size_t i = 0; i < irSignalCount; i++)
+    {
+        Serial.print(i + 1);
+        Serial.print(". ");
+        Serial.print(irSignals[i].name);
+        Serial.print(" protocol=");
+        Serial.print(typeToString(irSignals[i].protocol));
+        Serial.print(" bits=");
+        Serial.print(irSignals[i].bits);
+        Serial.print(" rawLength=");
+        Serial.println(irSignals[i].rawLength);
+    }
+}

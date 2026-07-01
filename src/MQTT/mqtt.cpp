@@ -9,7 +9,7 @@ static PubSubClient mqttClient(wifiClient);
 static MqttCommandHandler mqttCommandHandler = nullptr;
 static unsigned long lastReconnectAttempt = 0;
 
-static String topicFor(const String& subTopic)
+static String topicFor(const String &subTopic)
 {
     String topic = MQTT_BASE_TOPIC;
     if (!subTopic.startsWith("/"))
@@ -20,7 +20,7 @@ static String topicFor(const String& subTopic)
     return topic;
 }
 
-static void mqttCallback(char* topic, byte* payload, unsigned int length)
+static void mqttCallback(char *topic, byte *payload, unsigned int length)
 {
     String command;
     command.reserve(length + 1);
@@ -49,12 +49,12 @@ static void connectWiFi()
         return;
     }
 
-    const char* ssid = provisioningConfig.wifiSSID.length() > 0
-        ? provisioningConfig.wifiSSID.c_str()
-        : WIFI_SSID;
-    const char* wpass = provisioningConfig.wifiPassword.length() > 0
-        ? provisioningConfig.wifiPassword.c_str()
-        : WIFI_PASSWORD;
+    const char *ssid = provisioningConfig.wifiSSID.length() > 0
+                           ? provisioningConfig.wifiSSID.c_str()
+                           : WIFI_SSID;
+    const char *wpass = provisioningConfig.wifiPassword.length() > 0
+                            ? provisioningConfig.wifiPassword.c_str()
+                            : WIFI_PASSWORD;
 
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid, wpass);
@@ -70,18 +70,18 @@ static bool connectMQTT()
         return false;
     }
 
-    const char* host = provisioningConfig.mqttHost.length() > 0
-        ? provisioningConfig.mqttHost.c_str()
-        : MQTT_HOST;
+    const char *host = provisioningConfig.mqttHost.length() > 0
+                           ? provisioningConfig.mqttHost.c_str()
+                           : MQTT_HOST;
     uint16_t port = provisioningConfig.mqttPort > 0
-        ? provisioningConfig.mqttPort
-        : MQTT_PORT;
-    const char* mqttUser = provisioningConfig.mqttUser.length() > 0
-        ? provisioningConfig.mqttUser.c_str()
-        : MQTT_USER;
-    const char* mqttPass = provisioningConfig.mqttPassword.length() > 0
-        ? provisioningConfig.mqttPassword.c_str()
-        : MQTT_PASSWORD;
+                        ? provisioningConfig.mqttPort
+                        : MQTT_PORT;
+    const char *mqttUser = provisioningConfig.mqttUser.length() > 0
+                               ? provisioningConfig.mqttUser.c_str()
+                               : MQTT_USER;
+    const char *mqttPass = provisioningConfig.mqttPassword.length() > 0
+                               ? provisioningConfig.mqttPassword.c_str()
+                               : MQTT_PASSWORD;
 
     Serial.print("Connecting MQTT to ");
     Serial.print(host);
@@ -117,12 +117,12 @@ void setupMQTT(MqttCommandHandler commandHandler)
 {
     mqttCommandHandler = commandHandler;
 
-    const char* host = provisioningConfig.mqttHost.length() > 0
-        ? provisioningConfig.mqttHost.c_str()
-        : MQTT_HOST;
+    const char *host = provisioningConfig.mqttHost.length() > 0
+                           ? provisioningConfig.mqttHost.c_str()
+                           : MQTT_HOST;
     uint16_t port = provisioningConfig.mqttPort > 0
-        ? provisioningConfig.mqttPort
-        : MQTT_PORT;
+                        ? provisioningConfig.mqttPort
+                        : MQTT_PORT;
 
     WiFi.setAutoReconnect(true);
     connectWiFi();
@@ -151,7 +151,7 @@ bool isMQTTConnected()
     return mqttClient.connected();
 }
 
-bool publishMQTT(const String& subTopic, const String& payload, bool retained)
+bool publishMQTT(const String &subTopic, const String &payload, bool retained)
 {
     if (!mqttClient.connected())
     {

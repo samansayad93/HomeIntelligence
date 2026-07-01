@@ -112,9 +112,12 @@ bool loadRFSignals()
     return true;
 }
 
-RFSignal* findRFSignalByName(const String& name){
-    for (size_t i=0;i<signalCount;i++){
-        if (signals[i].name == name){
+RFSignal *findRFSignalByName(const String &name)
+{
+    for (size_t i = 0; i < signalCount; i++)
+    {
+        if (signals[i].name == name)
+        {
             return &signals[i];
         }
     }
@@ -214,7 +217,7 @@ bool loadIRSignals()
         if (raw.isNull() || raw.size() == 0)
             continue;
 
-        IRSignal& signal = irSignals[irSignalCount];
+        IRSignal &signal = irSignals[irSignalCount];
         signal.name = obj["name"] | "";
         signal.protocol = static_cast<decode_type_t>(obj["protocol"] | static_cast<int16_t>(decode_type_t::UNKNOWN));
         signal.value = obj["value"] | 0;
@@ -232,10 +235,12 @@ bool loadIRSignals()
     return true;
 }
 
-IRSignal* findIRSignalByName(const String& name)
+IRSignal *findIRSignalByName(const String &name)
 {
-    for (size_t i=0;i<irSignalCount;i++){
-        if (irSignals[i].name == name){
+    for (size_t i = 0; i < irSignalCount; i++)
+    {
+        if (irSignals[i].name == name)
+        {
             return &irSignals[i];
         }
     }

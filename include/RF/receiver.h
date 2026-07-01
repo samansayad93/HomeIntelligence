@@ -3,6 +3,7 @@
 
 #include <RF/general.h>
 
-bool readRFSignal(const String& name);
+bool readRFSignal(const String &name);
+bool handleRFReceive(bool &receivingRF, const String &receiveName);
 
 #endif

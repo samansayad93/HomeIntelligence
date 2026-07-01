@@ -11,7 +11,7 @@ bool loadRFSignals();
 bool saveIRSignals();
 bool loadIRSignals();
 
-RFSignal* findRFSignalByName(const String& name);
-IRSignal* findIRSignalByName(const String& name);
+RFSignal *findRFSignalByName(const String &name);
+IRSignal *findIRSignalByName(const String &name);
 
 #endif
