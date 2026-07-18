@@ -107,7 +107,6 @@ static bool connectMQTT()
 
     String commandTopic = topicFor("command");
     mqttClient.subscribe(commandTopic.c_str());
-    publishMQTT("status", "online", true);
     Serial.print("MQTT subscribed: ");
     Serial.println(commandTopic);
     return true;

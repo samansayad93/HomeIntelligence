@@ -41,7 +41,7 @@ void checkMotionDetection()
     if (motion == 1)
     {
         Serial.println("Motion detected!");
-        publishMQTT("alarm", "motion detected");
+        publishMQTT(MQTT_Alarm_Topic, "motion detected");
         startAlarm();
     }
 }

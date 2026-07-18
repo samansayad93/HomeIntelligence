@@ -22,6 +22,17 @@ const char MQTT_USER[] = "";
 const char MQTT_PASSWORD[] = "";
 const char MQTT_BASE_TOPIC[] = "homeinteligence";
 
+const char MQTT_LDR_TOPIC[] = "sensor/LDR";
+const char MQTT_TEMP_TOPIC[] = "sensor/TEMP";
+const char MQTT_HUM_TOPIC[] = "sensor/HUM";
+const char MQTT_PIR_TOPIC[] = "sensor/PIR";
+const char MQTT_MQ2_TOPIC[] = "sensor/MQ2";
+const char MQTT_Alarm_Topic[] = "alarm";
+
+extern String receiveName;
+extern bool receivingRF;
+extern bool receivingIR;
+
 #define MQTT_RECONNECT_INTERVAL 5000
 
 #define LDR_PIN 34
