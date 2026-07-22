@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Inteligence — Home Intelligence Hub</title>
+  <meta name="description" content="Live MQTT dashboard for the Inteligence ESP32 sensor & control node." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <!-- ============================ HEADER ============================ -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand__logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9.5 12 3l9 6.5" /><path d="M5 10v10h14V10" /><path d="M9 20v-6h6v6" />
+        </svg>
+      </div>
+      <div class="brand__text">
+        <h1>Inteligence</h1>
+        <span>Home Intelligence Hub</span>
+      </div>
+    </div>
+
+    <div class="connstatus" id="connStatus" data-state="disconnected">
+      <span class="connstatus__dot"></span>
+      <span class="connstatus__label">Disconnected</span>
+    </div>
+  </header>
+
+  <!-- ============================ ALARM BANNER ============================ -->
+  <div id="alarmBanner" class="alarm hidden" role="alert">
+    <div class="alarm__icon" aria-hidden="true">⚠</div>
+    <div class="alarm__body">
+      <div class="alarm__title" id="alarmTitle">Alarm</div>
+      <div class="alarm__time" id="alarmTime"></div>
+    </div>
+    <button class="alarm__dismiss" id="alarmDismiss" aria-label="Dismiss alarm">✕</button>
+  </div>
+
+  <main class="layout">
+    <!-- ============================ LEFT: SENSORS ============================ -->
+    <section class="panel col-main">
+      <!-- Connection settings -->
+      <div class="card conn">
+        <button class="card__head collapsible" id="connToggle" aria-expanded="true">
+          <span class="card__title">
+            <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+            Broker Connection
+          </span>
+          <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="card__body" id="connBody">
+          <form id="connForm" class="conn__form" autocomplete="off">
+            <label class="field">
+              <span>Protocol</span>
+              <select name="protocol">
+                <option value="ws">ws&nbsp;(MQTT over WebSocket)</option>
+                <option value="wss">wss&nbsp;(secure WebSocket)</option>
+              </select>
+            </label>
+            <label class="field field--wide2">
+              <span>Broker host</span>
+              <input type="text" name="host" placeholder="192.168.1.10" required />
+            </label>
+            <label class="field">
+              <span>Port</span>
+              <input type="number" name="port" placeholder="9001" min="1" max="65535" />
+            </label>
+            <label class="field field--wide2">
+              <span>Path</span>
+              <input type="text" name="path" placeholder="/mqtt" />
+            </label>
+            <label class="field field--wide2">
+              <span>Base topic</span>
+              <input type="text" name="baseTopic" placeholder="homeinteligence" />
+            </label>
+            <label class="field">
+              <span>Client ID</span>
+              <input type="text" name="clientId" placeholder="auto" />
+            </label>
+            <label class="field">
+              <span>Username <em>(optional)</em></span>
+              <input type="text" name="username" />
+            </label>
+            <label class="field">
+              <span>Password <em>(optional)</em></span>
+              <input type="password" name="password" />
+            </label>
+
+            <div class="conn__actions field--full">
+              <button type="submit" class="btn btn--primary" id="connectBtn">Connect</button>
+              <button type="button" class="btn" id="disconnectBtn" disabled>Disconnect</button>
+              <span class="conn__hint" id="connHint">Tip: broker needs a WebSocket listener (Mosquitto: port 9001, path <code>/mqtt</code>).</span>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Sensor grid -->
+      <div class="card">
+        <div class="card__head">
+          <span class="card__title">Live Sensors</span>
+          <span class="card__sub" id="lastUpdate">awaiting data…</span>
+        </div>
+        <div class="card__body">
+          <div class="sensor-grid" id="sensorGrid">
+            <!-- cards injected by JS -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================ RIGHT: CONTROL + LOG ============================ -->
+    <aside class="panel col-side">
+      <!-- Control panel -->
+      <div class="card">
+        <div class="card__head">
+          <span class="card__title">
+            <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            Device Control
+          </span>
+        </div>
+        <div class="card__body control">
+
+          <!-- Direct toggles -->
+          <div class="control__group">
+            <div class="control__label">Alarm buzzer</div>
+            <div class="togglepair">
+              <button class="btn btn--seg" data-cmd="buzzer on">On</button>
+              <button class="btn btn--seg" data-cmd="buzzer off">Off</button>
+            </div>
+          </div>
+
+          <div class="control__group">
+            <div class="control__label">Motion detection (PIR)</div>
+            <div class="togglepair">
+              <button class="btn btn--seg" data-cmd="motion on">Arm</button>
+              <button class="btn btn--seg" data-cmd="motion off">Disarm</button>
+            </div>
+          </div>
+
+          <hr class="divider" />
+
+          <!-- RF -->
+          <div class="control__group">
+            <div class="control__label">
+              RF&nbsp;<span class="tag">433 / 315 MHz</span>
+            </div>
+            <div class="cmdline">
+              <input type="text" id="rfName" placeholder="signal name" list="signalNames" />
+              <button class="btn" id="rfCapture" title="rf rx &lt;name&gt; — capture a remote button">Capture</button>
+              <button class="btn" id="rfTransmit" title="rf tx &lt;name&gt; — replay it">Transmit</button>
+              <button class="btn btn--ghost" id="rfList" title="rf list">List</button>
+            </div>
+          </div>
+
+          <!-- IR -->
+          <div class="control__group">
+            <div class="control__label">
+              IR&nbsp;<span class="tag">infrared</span>
+            </div>
+            <div class="cmdline">
+              <input type="text" id="irName" placeholder="signal name" list="signalNames" />
+              <button class="btn" id="irCapture" title="ir rx &lt;name&gt; — capture a remote">Capture</button>
+              <button class="btn" id="irTransmit" title="ir tx &lt;name&gt; — replay it">Transmit</button>
+              <button class="btn btn--ghost" id="irList" title="ir list">List</button>
+            </div>
+          </div>
+
+          <datalist id="signalNames"></datalist>
+
+          <hr class="divider" />
+
+          <!-- Free-form -->
+          <div class="control__group">
+            <div class="control__label">Raw command → <code id="cmdTopicLabel">command</code></div>
+            <div class="cmdline">
+              <input type="text" id="rawCmd" placeholder="e.g. help" />
+              <button class="btn btn--primary" id="rawSend">Send</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Message log -->
+      <div class="card logcard">
+        <div class="card__head">
+          <span class="card__title">
+            <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+            Activity Log
+          </span>
+          <div class="log__tools">
+            <select id="logFilter" aria-label="Filter log">
+              <option value="all">All</option>
+              <option value="in">Incoming</option>
+              <option value="out">Outgoing</option>
+            </select>
+            <button class="btn btn--ghost btn--sm" id="logClear">Clear</button>
+          </div>
+        </div>
+        <div class="card__body">
+          <div id="log" class="log" aria-live="polite"></div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="footer">
+    <span>Inteligence dashboard · MQTT over WebSocket · connects directly to your broker, no server required.</span>
+  </footer>
+
+  <!-- libraries + app -->
+  <script src="js/lib/mqtt.min.js"></script>
+  <script src="js/lib/chart.umd.min.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
