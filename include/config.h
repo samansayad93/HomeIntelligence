@@ -46,8 +46,10 @@ extern bool receivingIR;
 
 #define BUZZER_PIN 12
 
-#define RF_RX_PIN 27
-#define RF_TX_PIN 26
+#define RF_RX_433_PIN 27
+#define RF_TX_433_PIN 26
+#define RF_RX_315_PIN 4
+#define RF_TX_315_PIN 5
 
 #define IR_RX_PIN 14
 #define IR_TX_PIN 25

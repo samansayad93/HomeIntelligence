@@ -3,24 +3,40 @@
 
 void resetRFReceiver()
 {
-    mySwitch.resetAvailable();
+    rfSwitch433.resetAvailable();
+    rfSwitch315.resetAvailable();
 }
 
 bool readRFSignal(const String &name)
 {
-    if (!mySwitch.available())
+    // Both modules are always listening; whichever band actually receives
+    // the signal is the one that fired.
+    RCSwitch *activeSwitch = nullptr;
+    uint16_t band = 0;
+
+    if (rfSwitch433.available())
+    {
+        activeSwitch = &rfSwitch433;
+        band = 433;
+    }
+    else if (rfSwitch315.available())
+    {
+        activeSwitch = &rfSwitch315;
+        band = 315;
+    }
+    else
     {
         return false;
     }
 
-    uint32_t code = mySwitch.getReceivedValue();
-    uint16_t bits = mySwitch.getReceivedBitlength();
-    uint16_t protocol = mySwitch.getReceivedProtocol();
-    uint16_t pulse = mySwitch.getReceivedDelay();
+    uint32_t code = activeSwitch->getReceivedValue();
+    uint16_t bits = activeSwitch->getReceivedBitlength();
+    uint16_t protocol = activeSwitch->getReceivedProtocol();
+    uint16_t pulse = activeSwitch->getReceivedDelay();
 
     if (code == 0 || signalCount >= MAX_SIGNALS)
     {
-        mySwitch.resetAvailable();
+        activeSwitch->resetAvailable();
         return false;
     }
 
@@ -29,9 +45,10 @@ bool readRFSignal(const String &name)
     signals[signalCount].bits = bits;
     signals[signalCount].protocol = protocol;
     signals[signalCount].pulse = pulse;
+    signals[signalCount].band = band;
     signalCount++;
 
-    mySwitch.resetAvailable();
+    activeSwitch->resetAvailable();
     return true;
 }
 
@@ -48,7 +65,10 @@ bool handleRFReceive(bool &receivingRF, const String &receiveName)
         if (saveRFSignals())
         {
             Serial.print("Saved RF signal: ");
-            Serial.println(receiveName);
+            Serial.print(receiveName);
+            Serial.print(" (");
+            Serial.print(signals[signalCount - 1].band);
+            Serial.println(" MHz)");
             return true;
         }
         else
