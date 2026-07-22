@@ -5,6 +5,12 @@ bool motionDetectionEnabled = false;
 void setupPIR()
 {
     pinMode(PIR_PIN, INPUT);
+
+    motionDetectionEnabled = loadMotionDetection();
+    if (motionDetectionEnabled)
+    {
+        Serial.println("Motion detection restored to ON");
+    }
 }
 
 int readPIR()
@@ -22,12 +28,30 @@ int readPIR()
 
 void turnONMotionDetection()
 {
+    if (motionDetectionEnabled)
+    {
+        return;
+    }
+
     motionDetectionEnabled = true;
+    if (!saveMotionDetection(true))
+    {
+        Serial.println("Failed to persist motion detection");
+    }
 }
 
 void turnOFFMotionDetection()
 {
+    if (!motionDetectionEnabled)
+    {
+        return;
+    }
+
     motionDetectionEnabled = false;
+    if (!saveMotionDetection(false))
+    {
+        Serial.println("Failed to persist motion detection");
+    }
 }
 
 void checkMotionDetection()
@@ -40,8 +64,8 @@ void checkMotionDetection()
     int motion = readPIR();
     if (motion == 1)
     {
-        Serial.println("Motion detected!");
-        publishMQTT(MQTT_Alarm_Topic, "motion detected");
+        Serial.println("Motion Detected!");
+        publishMQTT(MQTT_Alarm_Topic, "Motion Detected!");
         startAlarm();
     }
 }

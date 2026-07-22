@@ -3,6 +3,7 @@
 
 #include <config.h>
 #include <Alarm/alarm.h>
+#include <PIR/pir.h>
 #include <Memory/memory.h>
 #include <IR/general.h>
 #include <IR/receiver.h>

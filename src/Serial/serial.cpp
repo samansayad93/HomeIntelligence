@@ -11,6 +11,8 @@ void printHelp()
     Serial.println("  ir list       - list saved IR signals");
     Serial.println("  buzzer on     - turn on the buzzer");
     Serial.println("  buzzer off    - turn off the buzzer");
+    Serial.println("  motion on     - turn on the motion detection");
+    Serial.println("  motion off    - turn off the motion detection");
     Serial.println("  MQTT command topic: homeinteligence/command");
     Serial.println("  help          - show this help");
 }
@@ -172,12 +174,39 @@ void handleSerialCommand(const String &command)
         if (subAction == "on")
         {
             startAlarm();
+            return;
         }
 
         if (subAction == "off")
         {
             stopAlarm();
+            return;
         }
+
+        Serial.println("Unknown command. Type: help");
+        return;
+    }
+
+    if (action == "motion")
+    {
+        int subSeparator = argument.indexOf(' ');
+        String subAction = subSeparator == -1 ? argument : argument.substring(0, subSeparator);
+        String name = subSeparator == -1 ? "" : argument.substring(subSeparator + 1);
+
+        if (subAction == "on")
+        {
+            turnONMotionDetection();
+            return;
+        }
+
+        if (subAction == "off")
+        {
+            turnOFFMotionDetection();
+            return;
+        }
+
+        Serial.println("Unknown command. Type: help");
+        return;
     }
 
     if (action == "help")

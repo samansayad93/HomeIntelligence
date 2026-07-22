@@ -9,6 +9,7 @@ const char PROVISIONING_AP_PASSWORD[] = "123456";
 
 const char RF_FILE_PATH[] = "/rf_signals.json";
 const char IR_FILE_PATH[] = "/ir_signals.json";
+const char SETTINGS_FILE_PATH[] = "/settings.json";
 const size_t MAX_SIGNALS = 20;
 const size_t MAX_IR_RAW_LENGTH = 200;
 
