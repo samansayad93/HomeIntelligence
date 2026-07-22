@@ -89,9 +89,11 @@ const SIGNALS_KEY = "inteligence.web.signals.v1";
 
 let client = null;
 let baseTopic = "homeinteligence";
+let device = "";                  // device name — inserted into every topic path
 let intentionallyClosed = false;
 const cards = {};      // kind -> { card, num, sub, chip, bar, time, chart, ts }
-const signalNames = new Set(loadJSON(SIGNALS_KEY, []));
+/* saved signal names per kind (rf / ir), so each section gets its own clickable list */
+const signalStore = loadSignals();
 
 /* ----------------------------- dom ----------------------------- */
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -121,7 +123,7 @@ function saveJSON(key, val) {
 }
 function loadSettings() {
   return Object.assign(
-    { protocol: "ws", host: "", port: "9001", path: "/mqtt", baseTopic: "homeinteligence", clientId: "", username: "", password: "" },
+    { protocol: "ws", host: "", port: "9001", path: "/mqtt", baseTopic: "homeinteligence", device: "", clientId: "", username: "", password: "" },
     loadJSON(STORAGE_KEY, {})
   );
 }
@@ -205,18 +207,27 @@ function readForm() {
     port: (fd.get("port") || "").trim(),
     path: (fd.get("path") || "").trim() || "/mqtt",
     baseTopic: (fd.get("baseTopic") || "").trim() || "homeinteligence",
+    device: (fd.get("device") || "").trim(),
     clientId: (fd.get("clientId") || "").trim(),
     username: (fd.get("username") || "").trim(),
     password: fd.get("password") || ""
   };
 }
 
+function deviceBase() {
+  // Every device topic is <baseTopic>/<device>/<suffix>; the device name is the
+  // segment the firmware inserts in topicFor(), so it must match here exactly.
+  return device ? `${baseTopic}/${device}` : baseTopic;
+}
+
 function connect() {
   const s = readForm();
   if (!s.host) { flashHint("Enter your broker host first."); form.host.focus(); return; }
+  if (!s.device) { flashHint("Enter the device name (matches the device's provisioning name)."); form.device.focus(); return; }
   saveSettings(s);
   baseTopic = s.baseTopic.replace(/^\/+|\/+$/g, "");
-  elCmdTopicLabel.textContent = `${baseTopic}/command`;
+  device = s.device.replace(/^\/+|\/+$/g, "");
+  elCmdTopicLabel.textContent = `${deviceBase()}/command`;
 
   const port = s.port || (s.protocol === "wss" ? "443" : "9001");
   const path = s.path.startsWith("/") ? s.path : "/" + s.path;
@@ -240,7 +251,7 @@ function connect() {
 
   client.on("connect", () => {
     setStatus("connected", "Connected");
-    const subs = [`${baseTopic}/sensor/#`, `${baseTopic}/alarm`];
+    const subs = [`${deviceBase()}/sensor/#`, `${deviceBase()}/alarm`];
     client.subscribe(subs, (err) => {
       if (err) { log("sys", "subscribe", String(err)); return; }
       log("sys", "subscribe", subs.join(", "));
@@ -277,13 +288,13 @@ function disconnect() {
 }
 
 function handleMessage(topic, msg) {
-  const prefix = baseTopic + "/";
+  const prefix = deviceBase() + "/";
   if (!topic.startsWith(prefix)) return;
   const suffix = topic.slice(prefix.length);
   const now = Date.now();
 
   if (suffix === "alarm") {
-    showAlarm(msg, now);
+    handleAlarmMessage(msg, now);
     log("in", topic, msg);
     return;
   }
@@ -311,7 +322,7 @@ function sendCommand(cmd) {
   cmd = (cmd || "").trim();
   if (!cmd) return;
   if (!client || !client.connected) { flashHint("Not connected to the broker."); return; }
-  const topic = `${baseTopic}/command`;
+  const topic = `${deviceBase()}/command`;
   client.publish(topic, cmd);
   log("out", topic, cmd);
 }
@@ -319,7 +330,7 @@ function sendCommand(cmd) {
 function captureSignal(kind, name) {
   if (!name) { flashHint(`Enter a name for the ${kind} signal.`); return false; }
   sendCommand(`${kind} rx ${name}`);
-  rememberSignal(name);
+  rememberSignal(kind, name);
   return true;
 }
 function transmitSignal(kind, name) {
@@ -328,16 +339,52 @@ function transmitSignal(kind, name) {
   return true;
 }
 
-function rememberSignal(name) {
-  if (!signalNames.has(name)) {
-    signalNames.add(name);
-    saveJSON(SIGNALS_KEY, Array.from(signalNames));
-    refreshDatalist();
+/* saved-signal persistence: stored per kind so RF and IR names stay separate */
+function loadSignals() {
+  const raw = loadJSON(SIGNALS_KEY, null);
+  if (raw && Array.isArray(raw.rf) && Array.isArray(raw.ir)) return { rf: raw.rf.slice(), ir: raw.ir.slice() };
+  return { rf: [], ir: [] };
+}
+function saveSignals() { saveJSON(SIGNALS_KEY, signalStore); }
+
+function rememberSignal(kind, name) {
+  const list = signalStore[kind];
+  if (!list.includes(name)) {
+    list.push(name);
+    saveSignals();
+    renderSignalLists();
   }
 }
-function refreshDatalist() {
-  $("#signalNames").innerHTML = Array.from(signalNames)
-    .map(n => `<option value="${escapeHTML(n)}"></option>`).join("");
+
+/* render the clickable saved-signal lists + per-kind autocomplete options */
+function renderSignalLists() {
+  renderSignalList("rf", $("#rfSignals"));
+  renderSignalList("ir", $("#irSignals"));
+  refreshDatalists();
+}
+function renderSignalList(kind, el) {
+  if (!el) return;
+  const names = signalStore[kind];
+  el.innerHTML = "";
+  if (!names.length) {
+    el.innerHTML = `<span class="siglist__empty">No saved signals — capture one above.</span>`;
+    return;
+  }
+  names.forEach(name => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = `sig sig--${kind}`;
+    btn.title = `${kind} tx ${name}`;
+    btn.textContent = name;
+    btn.addEventListener("click", () => transmitSignal(kind, name));
+    el.appendChild(btn);
+  });
+}
+function refreshDatalists() {
+  for (const kind of ["rf", "ir"]) {
+    const dl = $(`#${kind}SignalNames`);
+    if (dl) dl.innerHTML = signalStore[kind].map(n => `<option value="${escapeHTML(n)}"></option>`).join("");
+  }
 }
 
 /* toggle visual state for buzzer/motion buttons */
@@ -350,7 +397,27 @@ function markToggle(cmd) {
 }
 
 /* ----------------------------- alarm ----------------------------- */
-let alarmTimer = null;
+/* The alarm topic carries two kinds of message:
+   - arm/disarm status ("Motion Detection: ON/OFF"): update the motion buttons.
+   - real alarm events ("Motion Detected!", "MQ2 threshold exceeded!"): show the
+     banner and mark the buzzer on. The buzzer must only light up for an actual
+     alarm — arming/disarming is just a status change. */
+function handleAlarmMessage(msg, ts) {
+  const lower = (msg || "").toLowerCase();
+
+  if (lower.includes("motion detection: on")) {
+    markToggle("motion on");
+    return;
+  }
+  if (lower.includes("motion detection: off")) {
+    markToggle("motion off");
+    return;
+  }
+
+  showAlarm(msg, ts);
+  markToggle("buzzer on");
+}
+
 function showAlarm(msg, ts) {
   elAlarmTitle.textContent = msg;
   elAlarmTime.textContent = formatClock(ts);
@@ -359,10 +426,6 @@ function showAlarm(msg, ts) {
   elAlarmBanner.style.animation = "none";
   void elAlarmBanner.offsetWidth;
   elAlarmBanner.style.animation = "";
-  // an alarm always starts the buzzer on the device
-  markToggle("buzzer on");
-  clearTimeout(alarmTimer);
-  alarmTimer = setTimeout(() => { /* keep visible but stop pulsing */ }, 1);
 }
 function dismissAlarm() { elAlarmBanner.classList.add("hidden"); }
 
@@ -438,7 +501,7 @@ setInterval(() => {
 /* ----------------------------- wire up the UI ----------------------------- */
 function applySettingsToForm() {
   const s = loadSettings();
-  for (const k of ["protocol", "host", "port", "path", "baseTopic", "clientId", "username", "password"]) {
+  for (const k of ["protocol", "host", "port", "path", "baseTopic", "device", "clientId", "username", "password"]) {
     if (s[k] !== undefined && form.elements[k]) form.elements[k].value = s[k];
   }
 }
@@ -446,7 +509,7 @@ function applySettingsToForm() {
 function init() {
   buildCards();
   applySettingsToForm();
-  refreshDatalist();
+  renderSignalLists();
   setStatus("disconnected", "Disconnected");
   setButtons(false);
 
@@ -470,6 +533,12 @@ function init() {
       markToggle(cmd);
     });
   });
+
+  // Default safe state: buzzer off, motion disarmed. These stop-actions are
+  // always available, so show them selected until real state arrives (a retained
+  // arm/disarm message or an alarm event will switch the highlight as needed).
+  markToggle("buzzer off");
+  markToggle("motion off");
 
   // RF
   const rfName = $("#rfName");

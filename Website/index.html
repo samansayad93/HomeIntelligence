@@ -76,6 +76,10 @@
               <span>Base topic</span>
               <input type="text" name="baseTopic" placeholder="homeinteligence" />
             </label>
+            <label class="field field--wide2">
+              <span>Device name</span>
+              <input type="text" name="device" placeholder="e.g. esp32-inteligence" required />
+            </label>
             <label class="field">
               <span>Client ID</span>
               <input type="text" name="clientId" placeholder="auto" />
@@ -149,11 +153,12 @@
               RF&nbsp;<span class="tag">433 / 315 MHz</span>
             </div>
             <div class="cmdline">
-              <input type="text" id="rfName" placeholder="signal name" list="signalNames" />
+              <input type="text" id="rfName" placeholder="signal name" list="rfSignalNames" />
               <button class="btn" id="rfCapture" title="rf rx &lt;name&gt; — capture a remote button">Capture</button>
               <button class="btn" id="rfTransmit" title="rf tx &lt;name&gt; — replay it">Transmit</button>
               <button class="btn btn--ghost" id="rfList" title="rf list">List</button>
             </div>
+            <div class="siglist" id="rfSignals" aria-label="Saved RF signals — click to transmit"></div>
           </div>
 
           <!-- IR -->
@@ -162,14 +167,16 @@
               IR&nbsp;<span class="tag">infrared</span>
             </div>
             <div class="cmdline">
-              <input type="text" id="irName" placeholder="signal name" list="signalNames" />
+              <input type="text" id="irName" placeholder="signal name" list="irSignalNames" />
               <button class="btn" id="irCapture" title="ir rx &lt;name&gt; — capture a remote">Capture</button>
               <button class="btn" id="irTransmit" title="ir tx &lt;name&gt; — replay it">Transmit</button>
               <button class="btn btn--ghost" id="irList" title="ir list">List</button>
             </div>
+            <div class="siglist" id="irSignals" aria-label="Saved IR signals — click to transmit"></div>
           </div>
 
-          <datalist id="signalNames"></datalist>
+          <datalist id="rfSignalNames"></datalist>
+          <datalist id="irSignalNames"></datalist>
 
           <hr class="divider" />
 

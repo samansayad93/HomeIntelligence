@@ -308,6 +308,25 @@ input::placeholder { color: var(--text-faint); }
 .cmdline input { flex: 1 1 110px; min-width: 0; }
 .divider { border: 0; border-top: 1px solid var(--stroke-soft); margin: 4px 0 14px; }
 
+/* saved-signal chips — click a name to transmit it */
+.siglist { display: flex; flex-wrap: wrap; gap: 6px; align-content: flex-start; }
+.siglist__empty { font-size: .8rem; color: var(--text-faint); }
+.sig {
+  background: var(--card-2);
+  border: 1px solid var(--stroke);
+  color: var(--text);
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: .8rem;
+  font-weight: 550;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease, transform .05s ease;
+}
+.sig:hover { background: #222b42; }
+.sig:active { transform: translateY(1px); }
+.sig--rf:hover { border-color: var(--accent); color: var(--accent); }
+.sig--ir:hover { border-color: var(--motion); color: var(--motion); }
+
 /* active toggle highlight */
 .btn--seg.is-on { background: linear-gradient(135deg, var(--accent), var(--accent-2)); border-color: transparent; color: #fff; }
 .btn--seg[data-cmd="buzzer on"].is-on,
