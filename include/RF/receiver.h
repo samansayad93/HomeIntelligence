@@ -3,6 +3,7 @@
 
 #include <RF/general.h>
 
+void resetRFReceiver();
 bool readRFSignal(const String &name);
 bool handleRFReceive(bool &receivingRF, const String &receiveName);
 

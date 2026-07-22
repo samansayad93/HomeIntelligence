@@ -58,6 +58,7 @@ void handleSerialCommand(const String &command)
             receiveName = name;
             receivingRF = true;
             receivingIR = false;
+            resetRFReceiver();
             Serial.print("Waiting for RF signal named: ");
             Serial.println(receiveName);
             return;

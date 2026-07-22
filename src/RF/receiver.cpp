@@ -1,6 +1,11 @@
 #include <RF/receiver.h>
 #include <Memory/memory.h>
 
+void resetRFReceiver()
+{
+    mySwitch.resetAvailable();
+}
+
 bool readRFSignal(const String &name)
 {
     if (!mySwitch.available())
