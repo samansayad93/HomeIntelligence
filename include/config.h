@@ -5,7 +5,9 @@
 
 const char PROVISIONING_FILE_PATH[] = "/provisioning.json";
 const char PROVISIONING_AP_SSID[] = "Inteligence-Setup";
-const char PROVISIONING_AP_PASSWORD[] = "123456";
+// WPA2 requires an 8-63 char password. Anything shorter makes WiFi.softAP()
+// fail and the ESP32 falls back to its default open "ESP_XXXXXX" AP.
+const char PROVISIONING_AP_PASSWORD[] = "12345678";
 
 const char RF_FILE_PATH[] = "/rf_signals.json";
 const char IR_FILE_PATH[] = "/ir_signals.json";
@@ -34,7 +36,11 @@ extern String receiveName;
 extern bool receivingRF;
 extern bool receivingIR;
 
-#define MQTT_RECONNECT_INTERVAL 5000
+#define MQTT_RECONNECT_INTERVAL 1000
+
+// Sustained WiFi failure window: if the station can't connect to the saved
+// network for this long, fall back into the provisioning portal.
+#define WIFI_PROVISIONING_FALLBACK_MS 30000
 
 #define LDR_PIN 34
 

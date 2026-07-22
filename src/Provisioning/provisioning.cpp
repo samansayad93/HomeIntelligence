@@ -4,6 +4,7 @@
 #include <ArduinoJson.h>
 #include <WiFi.h>
 #include <WebServer.h>
+#include <DNSServer.h>
 #include <config.h>
 
 ProvisioningConfig provisioningConfig;
@@ -64,6 +65,12 @@ static const char PROVISIONING_HTML[] PROGMEM = R"rawliteral(
       <label for="mpass">Password</label>
       <input type="password" id="mpass" name="mpass" placeholder="Optional">
     </div>
+    <div class="divider"></div>
+    <h2>Client</h2>
+    <div class="row">
+        <label for="cid">Device</label>
+        <input type="text" id="cid" name="cid" placeholder="Device name">
+    </div>
     <button type="submit">Save &amp; Restart</button>
   </form>
 </div>
@@ -98,6 +105,7 @@ static const char SAVED_HTML[] PROGMEM = R"rawliteral(
 )rawliteral";
 
 static WebServer server(80);
+static DNSServer dnsServer;
 static bool provisioningDone = false;
 
 static bool ensureLittleFS()
@@ -153,6 +161,7 @@ bool loadProvisioningConfig()
     provisioningConfig.mqttPort = doc["mport"] | 1883;
     provisioningConfig.mqttUser = doc["muser"] | "";
     provisioningConfig.mqttPassword = doc["mpass"] | "";
+    provisioningConfig.client = doc["cid"] | "";
 
     return provisioningConfig.wifiSSID.length() > 0 && provisioningConfig.mqttHost.length() > 0;
 }
@@ -178,6 +187,7 @@ bool saveProvisioningConfig(const ProvisioningConfig &cfg)
     doc["mport"] = cfg.mqttPort;
     doc["muser"] = cfg.mqttUser;
     doc["mpass"] = cfg.mqttPassword;
+    doc["cid"] = cfg.client;
 
     bool ok = serializeJson(doc, f) > 0;
     f.close();
@@ -192,6 +202,18 @@ bool isProvisioned()
 static void handleRoot()
 {
     server.send_P(200, "text/html", PROVISIONING_HTML);
+}
+
+static void redirectToPortal()
+{
+    // 3xx redirect to the absolute AP URL. iOS / Android / Windows auto-present
+    // their captive-portal browser when the connectivity probe is redirected; a
+    // plain 200 page is usually treated as "no internet" and never opens the page.
+    String url = "http://";
+    url += WiFi.softAPIP().toString();
+    url += "/";
+    server.sendHeader("Location", url, true);
+    server.send(302, "text/plain", "");
 }
 
 static void handleSave()
@@ -210,10 +232,11 @@ static void handleSave()
 
     cfg.mqttUser = server.arg("muser");
     cfg.mqttPassword = server.arg("mpass");
+    cfg.client = server.arg("cid");
 
-    if (cfg.wifiSSID.length() == 0 || cfg.mqttHost.length() == 0)
+    if (cfg.wifiSSID.length() == 0 || cfg.mqttHost.length() == 0 || cfg.client.length() == 0)
     {
-        server.send(400, "text/plain", "SSID and MQTT host are required.");
+        server.send(400, "text/plain", "SSID and MQTT host and Device name are required.");
         return;
     }
 
@@ -231,8 +254,7 @@ static void handleSave()
 
 static void handleNotFound()
 {
-    server.sendHeader("Location", "/", true);
-    server.send(302, "text/plain", "");
+    redirectToPortal();
 }
 
 void runProvisioningPortal()
@@ -240,7 +262,10 @@ void runProvisioningPortal()
     Serial.println("Provisioning: starting AP...");
 
     WiFi.mode(WIFI_AP);
-    WiFi.softAP(PROVISIONING_AP_SSID, PROVISIONING_AP_PASSWORD);
+    if (!WiFi.softAP(PROVISIONING_AP_SSID, PROVISIONING_AP_PASSWORD))
+    {
+        Serial.println("Provisioning: softAP failed — verify AP password is 8-63 chars");
+    }
 
     IPAddress apIP = WiFi.softAPIP();
     Serial.print("Provisioning AP: ");
@@ -248,7 +273,22 @@ void runProvisioningPortal()
     Serial.print("Provisioning URL: http://");
     Serial.println(apIP);
 
+    // Captive portal: capture every DNS query and point it at the AP IP so that
+    // connecting clients auto-open the setup page (iOS / Android / Windows).
+    dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
+    dnsServer.start(53, "*", apIP);
+    Serial.println("Provisioning: captive portal active");
+
     server.on("/", HTTP_GET, handleRoot);
+    // OS connectivity-check probes — redirecting them (instead of returning the
+    // expected "success"/204 response) is what makes the captive portal pop up
+    // automatically on iOS / Android / Windows.
+    server.on("/generate_204", HTTP_GET, redirectToPortal);        // Android
+    server.on("/gen_204", HTTP_GET, redirectToPortal);             // Android (alt)
+    server.on("/hotspot-detect.html", HTTP_GET, redirectToPortal); // Apple
+    server.on("/ncsi.txt", HTTP_GET, redirectToPortal);            // Windows
+    server.on("/connecttest.txt", HTTP_GET, redirectToPortal);     // Windows
+    server.on("/redirect", HTTP_GET, redirectToPortal);            // Windows
     server.on("/save", HTTP_POST, handleSave);
     server.onNotFound(handleNotFound);
     server.begin();
@@ -256,10 +296,12 @@ void runProvisioningPortal()
 
     while (!provisioningDone)
     {
+        dnsServer.processNextRequest();
         server.handleClient();
         delay(2);
     }
 
+    dnsServer.stop();
     server.stop();
     Serial.println("Provisioning: complete, restarting...");
     delay(1500);

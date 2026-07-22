@@ -11,6 +11,7 @@ struct ProvisioningConfig
     uint16_t mqttPort;
     String mqttUser;
     String mqttPassword;
+    String client;
 };
 
 extern ProvisioningConfig provisioningConfig;

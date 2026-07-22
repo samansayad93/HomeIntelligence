@@ -8,10 +8,16 @@ static WiFiClient wifiClient;
 static PubSubClient mqttClient(wifiClient);
 static MqttCommandHandler mqttCommandHandler = nullptr;
 static unsigned long lastReconnectAttempt = 0;
+static unsigned long wifiFailStart = 0;
 
 static String topicFor(const String &subTopic)
 {
     String topic = MQTT_BASE_TOPIC;
+    String device = provisioningConfig.client.length() > 0
+                    ? provisioningConfig.client
+                    : MQTT_CLIENT_ID;
+
+    topic = topic + "/" + device;
     if (!subTopic.startsWith("/"))
     {
         topic += "/";
@@ -131,7 +137,33 @@ void setupMQTT(MqttCommandHandler commandHandler)
 
 void handleMQTT()
 {
-    if (WiFi.status() != WL_CONNECTED || !mqttClient.connected())
+    if (WiFi.status() != WL_CONNECTED)
+    {
+        // WiFi is down — track how long it has been failing. Only a sustained
+        // WiFi failure falls back to provisioning; a broker-only outage (where
+        // WiFi is up) must not wipe the configuration.
+        if (wifiFailStart == 0)
+        {
+            wifiFailStart = millis();
+        }
+        else if (millis() - wifiFailStart >= WIFI_PROVISIONING_FALLBACK_MS)
+        {
+            Serial.println("WiFi: could not connect, starting provisioning portal");
+            runProvisioningPortal(); // blocks, then restarts the device
+        }
+
+        unsigned long now = millis();
+        if (now - lastReconnectAttempt >= MQTT_RECONNECT_INTERVAL)
+        {
+            lastReconnectAttempt = now;
+            connectMQTT();
+        }
+        return;
+    }
+
+    wifiFailStart = 0;
+
+    if (!mqttClient.connected())
     {
         unsigned long now = millis();
         if (now - lastReconnectAttempt >= MQTT_RECONNECT_INTERVAL)
