@@ -13,7 +13,6 @@ void printHelp()
     Serial.println("  buzzer off    - turn off the buzzer");
     Serial.println("  motion on     - turn on the motion detection");
     Serial.println("  motion off    - turn off the motion detection");
-    Serial.println("  MQTT command topic: homeinteligence/command");
     Serial.println("  help          - show this help");
 }
 

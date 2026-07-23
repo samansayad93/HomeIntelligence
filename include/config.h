@@ -4,9 +4,7 @@
 #include <Arduino.h>
 
 const char PROVISIONING_FILE_PATH[] = "/provisioning.json";
-const char PROVISIONING_AP_SSID[] = "Inteligence-Setup";
-// WPA2 requires an 8-63 char password. Anything shorter makes WiFi.softAP()
-// fail and the ESP32 falls back to its default open "ESP_XXXXXX" AP.
+const char PROVISIONING_AP_SSID[] = "Intelligence-Setup";
 const char PROVISIONING_AP_PASSWORD[] = "12345678";
 
 const char RF_FILE_PATH[] = "/rf_signals.json";
@@ -20,10 +18,10 @@ const char WIFI_PASSWORD[] = "YOUR_WIFI_PASSWORD";
 
 const char MQTT_HOST[] = "192.168.1.10";
 const uint16_t MQTT_PORT = 1883;
-const char MQTT_CLIENT_ID[] = "esp32-inteligence";
+const char MQTT_CLIENT_ID[] = "esp32-intelligence";
 const char MQTT_USER[] = "";
 const char MQTT_PASSWORD[] = "";
-const char MQTT_BASE_TOPIC[] = "homeinteligence";
+const char MQTT_BASE_TOPIC[] = "homeintelligence";
 
 const char MQTT_LDR_TOPIC[] = "sensor/LDR";
 const char MQTT_TEMP_TOPIC[] = "sensor/TEMP";
@@ -31,6 +29,8 @@ const char MQTT_HUM_TOPIC[] = "sensor/HUM";
 const char MQTT_PIR_TOPIC[] = "sensor/PIR";
 const char MQTT_MQ2_TOPIC[] = "sensor/MQ2";
 const char MQTT_Alarm_Topic[] = "alarm";
+const char MQTT_RF_SIGNAL_TOPIC[] = "RF/list";
+const char MQTT_IR_SIGNAL_TOPIC[] = "IR/list";
 
 extern String receiveName;
 extern bool receivingRF;
@@ -38,8 +38,6 @@ extern bool receivingIR;
 
 #define MQTT_RECONNECT_INTERVAL 1000
 
-// Sustained WiFi failure window: if the station can't connect to the saved
-// network for this long, fall back into the provisioning portal.
 #define WIFI_PROVISIONING_FALLBACK_MS 30000
 
 #define LDR_PIN 34
