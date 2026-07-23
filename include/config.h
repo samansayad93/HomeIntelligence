@@ -28,6 +28,8 @@ const char MQTT_HUM_TOPIC[] = "sensor/HUM";
 const char MQTT_PIR_TOPIC[] = "sensor/PIR";
 const char MQTT_MQ2_TOPIC[] = "sensor/MQ2";
 const char MQTT_Alarm_Topic[] = "alarm";
+const char MQTT_RF_SIGNAL_TOPIC[] = "RF/list";
+const char MQTT_IR_SIGNAL_TOPIC[] = "IR/list";
 
 extern String receiveName;
 extern bool receivingRF;

@@ -3,6 +3,8 @@
 
 #include <config.h>
 #include <RCSwitch.h>
+#include <ArduinoJson.h>
+#include <MQTT/mqtt.h>
 
 struct RFSignal
 {

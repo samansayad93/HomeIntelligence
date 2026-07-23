@@ -27,6 +27,9 @@ void listRFSignals()
         return;
     }
 
+    JsonObject obj;
+    String payload;
+
     for (size_t i = 0; i < signalCount; i++)
     {
         Serial.print(i + 1);
@@ -42,5 +45,15 @@ void listRFSignals()
         Serial.print(signals[i].protocol);
         Serial.print(" pulse=");
         Serial.println(signals[i].pulse);
+
+        obj["index"] = i + 1;
+        obj["name"] = signals[i].name;
+        obj["code"] = signals[i].code;
+        obj["bits"] = signals[i].bits;
+        obj["protocol"] = signals[i].protocol;
+        obj["pulse"] = signals[i].pulse;
+        obj["band"] = signals[i].band;
+        serializeJsonPretty(obj,payload);
+        publishMQTT(MQTT_RF_SIGNAL_TOPIC,payload);
     }
 }

@@ -6,6 +6,8 @@
 #include <IRsend.h>
 #include <IRremoteESP8266.h>
 #include <IRutils.h>
+#include <ArduinoJson.h>
+#include <MQTT/mqtt.h>
 
 struct IRSignal
 {
