@@ -1,10 +1,17 @@
 #include <PIR/pir.h>
 
 bool motionDetectionEnabled = false;
+bool motionDetectionTriggered = false;
 
 void setupPIR()
 {
     pinMode(PIR_PIN, INPUT);
+
+    motionDetectionEnabled = loadMotionDetection();
+    if (motionDetectionEnabled)
+    {
+        Serial.println("Motion detection restored to ON");
+    }
 }
 
 int readPIR()
@@ -22,17 +29,43 @@ int readPIR()
 
 void turnONMotionDetection()
 {
+    if (motionDetectionEnabled)
+    {
+        return;
+    }
+
     motionDetectionEnabled = true;
+    motionDetectionTriggered = false;
+    if (!saveMotionDetection(true))
+    {
+        Serial.println("Failed to persist motion detection");
+    }
+
+    Serial.println("Motion Detection: ON");
+    publishMQTT(MQTT_Alarm_Topic, "Motion Detection: ON", true);
 }
 
 void turnOFFMotionDetection()
 {
+    if (!motionDetectionEnabled)
+    {
+        return;
+    }
+
     motionDetectionEnabled = false;
+    motionDetectionTriggered = false;
+    if (!saveMotionDetection(false))
+    {
+        Serial.println("Failed to persist motion detection");
+    }
+
+    Serial.println("Motion Detection: OFF");
+    publishMQTT(MQTT_Alarm_Topic, "Motion Detection: OFF", true);
 }
 
 void checkMotionDetection()
 {
-    if (!motionDetectionEnabled)
+    if (!motionDetectionEnabled || motionDetectionTriggered)
     {
         return;
     }
@@ -40,8 +73,9 @@ void checkMotionDetection()
     int motion = readPIR();
     if (motion == 1)
     {
-        Serial.println("Motion detected!");
-        publishMQTT(MQTT_Alarm_Topic, "motion detected");
+        motionDetectionTriggered = true;
+        Serial.println("Motion Detected!");
+        publishMQTT(MQTT_Alarm_Topic, "Motion Detected!");
         startAlarm();
     }
 }

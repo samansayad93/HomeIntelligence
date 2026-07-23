@@ -4,11 +4,12 @@
 #include <Arduino.h>
 
 const char PROVISIONING_FILE_PATH[] = "/provisioning.json";
-const char PROVISIONING_AP_SSID[] = "Inteligence-Setup";
-const char PROVISIONING_AP_PASSWORD[] = "123456";
+const char PROVISIONING_AP_SSID[] = "Intelligence-Setup";
+const char PROVISIONING_AP_PASSWORD[] = "12345678";
 
 const char RF_FILE_PATH[] = "/rf_signals.json";
 const char IR_FILE_PATH[] = "/ir_signals.json";
+const char SETTINGS_FILE_PATH[] = "/settings.json";
 const size_t MAX_SIGNALS = 20;
 const size_t MAX_IR_RAW_LENGTH = 200;
 
@@ -17,10 +18,10 @@ const char WIFI_PASSWORD[] = "YOUR_WIFI_PASSWORD";
 
 const char MQTT_HOST[] = "192.168.1.10";
 const uint16_t MQTT_PORT = 1883;
-const char MQTT_CLIENT_ID[] = "esp32-inteligence";
+const char MQTT_CLIENT_ID[] = "esp32-intelligence";
 const char MQTT_USER[] = "";
 const char MQTT_PASSWORD[] = "";
-const char MQTT_BASE_TOPIC[] = "homeinteligence";
+const char MQTT_BASE_TOPIC[] = "homeintelligence";
 
 const char MQTT_LDR_TOPIC[] = "sensor/LDR";
 const char MQTT_TEMP_TOPIC[] = "sensor/TEMP";
@@ -35,7 +36,9 @@ extern String receiveName;
 extern bool receivingRF;
 extern bool receivingIR;
 
-#define MQTT_RECONNECT_INTERVAL 5000
+#define MQTT_RECONNECT_INTERVAL 1000
+
+#define WIFI_PROVISIONING_FALLBACK_MS 30000
 
 #define LDR_PIN 34
 

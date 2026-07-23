@@ -17,6 +17,57 @@ static bool ensureLittleFS()
     return mounted;
 }
 
+bool loadMotionDetection()
+{
+    if (!LittleFS.begin(false))
+    {
+        return false;
+    }
+
+    if (!LittleFS.exists(SETTINGS_FILE_PATH))
+    {
+        return false;
+    }
+
+    File f = LittleFS.open(SETTINGS_FILE_PATH, "r");
+    if (!f)
+    {
+        return false;
+    }
+
+    JsonDocument doc;
+    DeserializationError err = deserializeJson(doc, f);
+    f.close();
+
+    if (err)
+    {
+        return false;
+    }
+
+    return doc["motionDetection"] | false;
+}
+
+bool saveMotionDetection(bool enabled)
+{
+    if (!LittleFS.begin(false))
+    {
+        return false;
+    }
+
+    File f = LittleFS.open(SETTINGS_FILE_PATH, "w");
+    if (!f)
+    {
+        return false;
+    }
+
+    JsonDocument doc;
+    doc["motionDetection"] = enabled;
+
+    bool ok = serializeJson(doc, f) > 0;
+    f.close();
+    return ok;
+}
+
 bool saveRFSignals()
 {
     if (!ensureLittleFS())
