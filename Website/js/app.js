@@ -94,6 +94,9 @@ let intentionallyClosed = false;
 const cards = {};      // kind -> { card, num, sub, chip, bar, time, chart, ts }
 /* saved signal names per kind (rf / ir), so each section gets its own clickable list */
 const signalStore = loadSignals();
+/* latest device-reported signal lists (rf / ir); null until the first RF/list|IR/list
+   message arrives. When present it overrides the locally remembered chips. */
+const deviceSignals = { rf: null, ir: null };
 
 /* ----------------------------- dom ----------------------------- */
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -251,7 +254,7 @@ function connect() {
 
   client.on("connect", () => {
     setStatus("connected", "Connected");
-    const subs = [`${deviceBase()}/sensor/#`, `${deviceBase()}/alarm`];
+    const subs = [`${deviceBase()}/sensor/#`, `${deviceBase()}/alarm`, `${deviceBase()}/RF/list`, `${deviceBase()}/IR/list`];
     client.subscribe(subs, (err) => {
       if (err) { log("sys", "subscribe", String(err)); return; }
       log("sys", "subscribe", subs.join(", "));
@@ -292,20 +295,30 @@ function handleMessage(topic, msg) {
   if (!topic.startsWith(prefix)) return;
   const suffix = topic.slice(prefix.length);
   const now = Date.now();
+  log("in", topic, msg);
 
   if (suffix === "alarm") {
     handleAlarmMessage(msg, now);
-    log("in", topic, msg);
+    return;
+  }
+
+  if (suffix === "RF/list") {
+    handleSignalList("rf", msg);
+    return;
+  }
+
+  if (suffix === "IR/list") {
+    handleSignalList("ir", msg);
     return;
   }
 
   const sensor = SENSORS.find(s => s.suffix === suffix);
-  if (!sensor) { log("in", topic, msg); return; }
+  if (!sensor) { return; }
 
   const entry = cards[sensor.kind];
   if (!entry) return;
   const val = sensor.parse(msg);
-  if (val === null || Number.isNaN(val)) { log("in", topic, msg); return; }
+  if (val === null || Number.isNaN(val)) { return; }
 
   sensor.render(entry, val);
   entry.ts = now;
@@ -314,7 +327,6 @@ function handleMessage(topic, msg) {
   pushChart(entry.chart, typeof val === "boolean" ? (val ? 1 : 0) : val);
 
   elLastUpdate.textContent = `last update ${formatClock(now)}`;
-  log("in", topic, msg);
 }
 
 /* ----------------------------- commands ----------------------------- */
@@ -364,10 +376,25 @@ function renderSignalLists() {
 }
 function renderSignalList(kind, el) {
   if (!el) return;
-  const names = signalStore[kind];
   el.innerHTML = "";
+
+  const deviceList = deviceSignals[kind];
+  if (Array.isArray(deviceList)) {
+    /* the device has reported its saved signals — show them with full detail */
+    el.classList.add("siglist--cards");
+    if (!deviceList.length) {
+      el.innerHTML = `<span class="siglist__empty">No saved signals on the device — capture one above, then press List.</span>`;
+      return;
+    }
+    deviceList.forEach(s => { if (s) el.appendChild(buildSignalCard(kind, s)); });
+    return;
+  }
+
+  /* no device list yet — fall back to locally remembered name chips */
+  el.classList.remove("siglist--cards");
+  const names = signalStore[kind];
   if (!names.length) {
-    el.innerHTML = `<span class="siglist__empty">No saved signals — capture one above.</span>`;
+    el.innerHTML = `<span class="siglist__empty">No saved signals — capture one above or press List.</span>`;
     return;
   }
   names.forEach(name => {
@@ -379,6 +406,92 @@ function renderSignalList(kind, el) {
     btn.addEventListener("click", () => transmitSignal(kind, name));
     el.appendChild(btn);
   });
+}
+
+/* build a rich, transmit-on-click card for one device-reported signal.
+   IR: {index,name,protocol,value,bits}   RF: {index,name,code,bits,protocol,pulse,band} */
+function buildSignalCard(kind, s) {
+  const name = s && s.name ? String(s.name) : "(unnamed)";
+  const card = document.createElement("div");
+  card.className = `sigcard sigcard--${kind}`;
+
+  const meta = [];
+  if (s.index != null) meta.push(`#${s.index}`);
+  meta.push(kind.toUpperCase());
+  if (s.protocol != null) meta.push(`proto ${s.protocol}`);
+  if (kind === "rf" && s.band != null) meta.push(`${s.band} MHz`);
+  if (s.bits != null) meta.push(`${s.bits} bit`);
+
+  const detail = [];
+  if (kind === "rf") {
+    if (s.code != null) detail.push(`code ${formatCode(s.code)}`);
+    if (s.pulse != null) detail.push(`${s.pulse}μs pulse`);
+  } else {
+    if (s.value != null) detail.push(`value ${formatCode(s.value)}`);
+  }
+
+  card.innerHTML =
+    `<div class="sigcard__main">` +
+      `<div class="sigcard__name">${escapeHTML(name)}</div>` +
+      (meta.length ? `<div class="sigcard__meta">${escapeHTML(meta.join(" · "))}</div>` : "") +
+      (detail.length ? `<div class="sigcard__detail"><code>${escapeHTML(detail.join(" · "))}</code></div>` : "") +
+    `</div>` +
+    `<button type="button" class="btn btn--sm sigcard__tx sigcard__tx--${kind}" title="${kind} tx ${escapeHTML(name)}">Transmit</button>`;
+
+  $(".sigcard__tx", card).addEventListener("click", () => transmitSignal(kind, name));
+  return card;
+}
+
+/* format an RF code / IR value: hex for larger numbers, plain decimal otherwise.
+   IR values are uint64 — above JS's safe-integer range we fall back to the raw number. */
+function formatCode(v) {
+  const n = typeof v === "number" ? v : Number(v);
+  if (!Number.isFinite(n)) return String(v);
+  if (!Number.isSafeInteger(n)) return String(n);
+  return n > 0xff ? `0x${n.toString(16).toUpperCase()} (${n})` : String(n);
+}
+
+/* parse a device-published RF/list or IR/list payload and refresh that section.
+   Accepts a full JSON array (typical) or a single signal object streamed one at a
+   time, merged by index. */
+function handleSignalList(kind, msg) {
+  let data;
+  try { data = JSON.parse(msg); }
+  catch { log("sys", `${kind}/list`, "invalid JSON, ignored"); return; }
+
+  let list;
+  if (Array.isArray(data)) {
+    list = data;
+  } else if (data && typeof data === "object") {
+    list = mergeSignalObject(kind, data);
+  } else {
+    return;
+  }
+  list = list.filter(s => s && typeof s === "object" && (s.name != null || s.index != null));
+
+  deviceSignals[kind] = list;
+  mergeDeviceNames(kind, list);   // keep autocomplete + local chips in sync with the device
+  renderSignalLists();
+  log("sys", `${kind}/list`, `${list.length} signal${list.length === 1 ? "" : "s"} loaded`);
+}
+
+/* merge one streamed signal object into the running device list, keyed by index */
+function mergeSignalObject(kind, obj) {
+  const cur = Array.isArray(deviceSignals[kind]) ? deviceSignals[kind].slice() : [];
+  const at = (obj.index != null) ? cur.findIndex(s => s.index === obj.index) : -1;
+  if (at >= 0) cur[at] = obj; else cur.push(obj);
+  return cur;
+}
+
+/* fold device-reported names into the locally remembered store (drives autocomplete) */
+function mergeDeviceNames(kind, list) {
+  const names = signalStore[kind];
+  let changed = false;
+  list.forEach(s => {
+    const n = s && s.name;
+    if (n && !names.includes(n)) { names.push(n); changed = true; }
+  });
+  if (changed) saveSignals();
 }
 function refreshDatalists() {
   for (const kind of ["rf", "ir"]) {

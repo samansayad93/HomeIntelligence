@@ -327,6 +327,26 @@ input::placeholder { color: var(--text-faint); }
 .sig--rf:hover { border-color: var(--accent); color: var(--accent); }
 .sig--ir:hover { border-color: var(--motion); color: var(--motion); }
 
+/* device-reported signal cards — full detail + transmit */
+.siglist--cards { flex-direction: column; flex-wrap: nowrap; align-content: stretch; gap: 8px; }
+.sigcard {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  background: var(--card-2); border: 1px solid var(--stroke);
+  border-radius: var(--radius-sm); padding: 9px 11px;
+  transition: border-color .15s ease, background .15s ease;
+}
+.sigcard:hover { background: #222b42; }
+.sigcard--rf { border-left: 3px solid var(--accent); }
+.sigcard--ir { border-left: 3px solid var(--motion); }
+.sigcard__main { flex: 1 1 auto; min-width: 0; }
+.sigcard__name { font-size: .85rem; font-weight: 600; color: var(--text); overflow-wrap: anywhere; }
+.sigcard__meta { font-size: .66rem; color: var(--text-faint); margin-top: 2px; text-transform: uppercase; letter-spacing: .3px; }
+.sigcard__detail { font-size: .7rem; margin-top: 3px; }
+.sigcard__detail code { font-family: var(--mono); color: var(--text-dim); }
+.sigcard__tx { flex: 0 0 auto; }
+.sigcard__tx--rf:hover { border-color: var(--accent); color: var(--accent); }
+.sigcard__tx--ir:hover { border-color: var(--motion); color: var(--motion); }
+
 /* active toggle highlight */
 .btn--seg.is-on { background: linear-gradient(135deg, var(--accent), var(--accent-2)); border-color: transparent; color: #fff; }
 .btn--seg[data-cmd="buzzer on"].is-on,
