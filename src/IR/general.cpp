@@ -20,9 +20,6 @@ void listIRSignals()
         return;
     }
 
-    JsonObject obj;
-    String payload;
-
     for (size_t i = 0; i < irSignalCount; i++)
     {
         Serial.print(i + 1);
@@ -35,12 +32,16 @@ void listIRSignals()
         Serial.print(" rawLength=");
         Serial.println(irSignals[i].rawLength);
 
-        obj["index"] = i+1;
+        JsonDocument doc;
+        JsonObject obj = doc.to<JsonObject>();
+        obj["index"] = i + 1;
         obj["name"] = irSignals[i].name;
         obj["protocol"] = static_cast<int16_t>(irSignals[i].protocol);
         obj["value"] = irSignals[i].value;
         obj["bits"] = irSignals[i].bits;
-        serializeJsonPretty(obj,payload);
-        publishMQTT(MQTT_IR_SIGNAL_TOPIC,payload);
+
+        String payload;
+        serializeJson(obj, payload);
+        publishMQTT(MQTT_IR_SIGNAL_TOPIC, payload);
     }
 }
