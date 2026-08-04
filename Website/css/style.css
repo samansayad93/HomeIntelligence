@@ -347,6 +347,8 @@ input::placeholder { color: var(--text-faint); }
 .sigrow--ir { box-shadow: inset 3px 0 0 var(--motion); }
 .sigrow__tx--rf:hover { border-color: var(--accent); color: var(--accent); }
 .sigrow__tx--ir:hover { border-color: var(--motion); color: var(--motion); }
+.sigrow__action { display: flex; gap: 6px; justify-content: flex-end; white-space: nowrap; }
+.sigrow__del:hover { border-color: var(--danger, #ef4444); color: var(--danger, #ef4444); }
 
 /* active toggle highlight */
 .btn--seg.is-on { background: linear-gradient(135deg, var(--accent), var(--accent-2)); border-color: transparent; color: #fff; }

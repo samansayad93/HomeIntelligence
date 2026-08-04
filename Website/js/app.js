@@ -353,6 +353,11 @@ function transmitSignal(kind, name) {
   sendCommand(`${kind} tx ${name}`);
   return true;
 }
+function deleteSignal(kind, name) {
+  if (!name) { flashHint(`Enter a ${kind} signal name to delete.`); return false; }
+  sendCommand(`${kind} del ${name}`);
+  return true;
+}
 
 /* render the device-reported signal tables + per-kind autocomplete options.
    Signals are never cached: the tables reflect whatever the device last reported. */
@@ -387,7 +392,7 @@ function renderSignalList(kind, el) {
 }
 
 /* build one table row for a device-reported signal. Clicking the row (or its
-   Transmit button) replays the signal.
+   Transmit button) replays the signal; the Delete button removes it.
    IR: {index,name,protocol,value,bits}   RF: {index,name,code,bits,protocol,pulse,band} */
 function buildSignalRow(kind, s) {
   const name = s && s.name ? String(s.name) : "(unnamed)";
@@ -402,12 +407,18 @@ function buildSignalRow(kind, s) {
   const actionCell =
     `<td class="sigrow__action">` +
       `<button type="button" class="btn btn--sm sigrow__tx sigrow__tx--${kind}" title="${kind} tx ${escapeHTML(name)}">Transmit</button>` +
+      `<button type="button" class="btn btn--sm btn--ghost sigrow__del" title="${kind} del ${escapeHTML(name)} — delete">Delete</button>` +
     `</td>`;
 
   tr.innerHTML = nameCell + freqCell + actionCell;
-  const fire = (e) => { e.stopPropagation(); transmitSignal(kind, name); };
-  tr.addEventListener("click", fire);
-  $(".sigrow__tx", tr).addEventListener("click", fire);
+  const transmit = (e) => { e.stopPropagation(); transmitSignal(kind, name); };
+  const del = (e) => {
+    e.stopPropagation();
+    if (confirm(`Delete the ${kind.toUpperCase()} signal "${name}" from the device?`)) deleteSignal(kind, name);
+  };
+  tr.addEventListener("click", transmit);
+  $(".sigrow__tx", tr).addEventListener("click", transmit);
+  $(".sigrow__del", tr).addEventListener("click", del);
   return tr;
 }
 
@@ -608,12 +619,14 @@ function init() {
   const rfName = $("#rfName");
   $("#rfCapture").addEventListener("click", () => captureSignal("rf", rfName.value.trim()));
   $("#rfTransmit").addEventListener("click", () => transmitSignal("rf", rfName.value.trim()));
+  $("#rfDelete").addEventListener("click", () => deleteSignal("rf", rfName.value.trim()));
   $("#rfList").addEventListener("click", () => sendCommand("rf list"));
 
   // IR
   const irName = $("#irName");
   $("#irCapture").addEventListener("click", () => captureSignal("ir", irName.value.trim()));
   $("#irTransmit").addEventListener("click", () => transmitSignal("ir", irName.value.trim()));
+  $("#irDelete").addEventListener("click", () => deleteSignal("ir", irName.value.trim()));
   $("#irList").addEventListener("click", () => sendCommand("ir list"));
 
   // enter-to-capture on the name fields
