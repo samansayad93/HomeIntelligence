@@ -236,9 +236,11 @@ The same text commands work two ways:
 | `rf rx <name>` | Wait for an RF signal (433 **or** 315) and save it as `<name>` |
 | `rf tx <name>` | Transmit the RF signal saved as `<name>` (on its original band) |
 | `rf list` | List saved RF signals (name, band, code, bits, protocol, pulse) — printed to Serial **and** published to `…/RF/list` |
+| `rf del <name>` | Delete the RF signal saved as `<name>` |
 | `ir rx <name>` | Wait for an IR signal and save it as `<name>` |
 | `ir tx <name>` | Transmit the IR signal saved as `<name>` |
 | `ir list` | List saved IR signals — printed to Serial **and** published to `…/IR/list` |
+| `ir del <name>` | Delete the IR signal saved as `<name>` |
 | `buzzer on` / `buzzer off` | Start / stop the alarm buzzer |
 | `motion on` / `motion off` | Start / stop the motion detection |
 | `help` | Print the command list |
@@ -250,6 +252,7 @@ rf rx living_room_light      # press your 433/315 remote; it's captured + saved
 rf tx living_room_light      # replay it later (correct band chosen automatically)
 ir rx tv_power
 ir tx tv_power
+rf del living_room_light   # remove a saved RF signal
 buzzer off
 ```
 

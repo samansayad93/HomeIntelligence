@@ -6,9 +6,11 @@ void printHelp()
     Serial.println("  rf rx <name>  - wait for an RF signal and save it");
     Serial.println("  rf tx <name>  - transmit a saved RF signal");
     Serial.println("  rf list       - list saved RF signals");
+    Serial.println("  rf del <name> - delete a saved RF signal");
     Serial.println("  ir rx <name>  - wait for an IR signal and save it");
     Serial.println("  ir tx <name>  - transmit a saved IR signal");
     Serial.println("  ir list       - list saved IR signals");
+    Serial.println("  ir del <name> - delete a saved IR signal");
     Serial.println("  buzzer on     - turn on the buzzer");
     Serial.println("  buzzer off    - turn off the buzzer");
     Serial.println("  motion on     - turn on the motion detection");
@@ -98,6 +100,41 @@ void handleSerialCommand(const String &command)
             return;
         }
 
+        if (action == "rf" && subAction == "del")
+        {
+            if (name.length() == 0)
+            {
+                Serial.println("Missing signal name. Use: rf del <name>");
+                return;
+            }
+
+            RFSignal *signal = findRFSignalByName(name);
+            if (signal == nullptr)
+            {
+                Serial.println("RF signal not found");
+                return;
+            }
+
+            size_t index = signal - signals;
+            for (size_t i = index; i + 1 < signalCount; i++)
+            {
+                signals[i] = signals[i + 1];
+            }
+            signalCount--;
+
+            if (saveRFSignals())
+            {
+                Serial.print("Deleted RF signal: ");
+                Serial.println(name);
+            }
+            else
+            {
+                loadRFSignals();
+                Serial.println("Failed to delete RF signal");
+            }
+            return;
+        }
+
         if (action == "ir" && subAction == "rx")
         {
             if (name.length() == 0)
@@ -157,6 +194,41 @@ void handleSerialCommand(const String &command)
         if (action == "ir" && subAction == "list")
         {
             listIRSignals();
+            return;
+        }
+
+        if (action == "ir" && subAction == "del")
+        {
+            if (name.length() == 0)
+            {
+                Serial.println("Missing signal name. Use: ir del <name>");
+                return;
+            }
+
+            IRSignal *signal = findIRSignalByName(name);
+            if (signal == nullptr)
+            {
+                Serial.println("IR signal not found");
+                return;
+            }
+
+            size_t index = signal - irSignals;
+            for (size_t i = index; i + 1 < irSignalCount; i++)
+            {
+                irSignals[i] = irSignals[i + 1];
+            }
+            irSignalCount--;
+
+            if (saveIRSignals())
+            {
+                Serial.print("Deleted IR signal: ");
+                Serial.println(name);
+            }
+            else
+            {
+                loadIRSignals();
+                Serial.println("Failed to delete IR signal");
+            }
             return;
         }
 
