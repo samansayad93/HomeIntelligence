@@ -93,6 +93,7 @@ bool saveRFSignals()
         obj["bits"] = signals[i].bits;
         obj["protocol"] = signals[i].protocol;
         obj["pulse"] = signals[i].pulse;
+        obj["band"] = signals[i].band;
     }
 
     if (serializeJsonPretty(doc, f) == 0)
@@ -157,6 +158,7 @@ bool loadRFSignals()
         signals[signalCount].bits = obj["bits"] | 0;
         signals[signalCount].protocol = obj["protocol"] | 1;
         signals[signalCount].pulse = obj["pulse"] | 350;
+        signals[signalCount].band = obj["band"] | 433;
         signalCount++;
     }
 

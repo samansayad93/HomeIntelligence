@@ -7,8 +7,9 @@ bool transmitRFSignal(const RFSignal *signal)
         return false;
     }
 
-    mySwitch.setProtocol(signal->protocol);
-    mySwitch.setPulseLength(signal->pulse);
-    mySwitch.send(signal->code, signal->bits);
+    RCSwitch *sw = getRFSwitch(signal->band);
+    sw->setProtocol(signal->protocol);
+    sw->setPulseLength(signal->pulse);
+    sw->send(signal->code, signal->bits);
     return true;
 }

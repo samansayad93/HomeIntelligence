@@ -31,5 +31,17 @@ void listIRSignals()
         Serial.print(irSignals[i].bits);
         Serial.print(" rawLength=");
         Serial.println(irSignals[i].rawLength);
+
+        JsonDocument doc;
+        JsonObject obj = doc.to<JsonObject>();
+        obj["index"] = i + 1;
+        obj["name"] = irSignals[i].name;
+        obj["protocol"] = static_cast<int16_t>(irSignals[i].protocol);
+        obj["value"] = irSignals[i].value;
+        obj["bits"] = irSignals[i].bits;
+
+        String payload;
+        serializeJson(obj, payload);
+        publishMQTT(MQTT_IR_SIGNAL_TOPIC, payload);
     }
 }

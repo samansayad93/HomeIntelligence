@@ -1,4 +1,4 @@
-# Inteligence — ESP32 Home Intelligence Hub
+# intelligence — ESP32 Home Intelligence Hub
 
 A Wi-Fi-connected, MQTT-integrated home automation and sensing node for the
 **ESP32** (Arduino framework via PlatformIO). It reads a set of environmental
@@ -176,11 +176,11 @@ When the board boots without a saved profile it starts a Wi-Fi access point:
 
 | | |
 |---|---|
-| **SSID** | `Inteligence-Setup` |
+| **SSID** | `intelligence-Setup` |
 | **Password** | `123456` |
 | **Setup URL** | `http://192.168.4.1` |
 
-1. Connect to the `Inteligence-Setup` Wi-Fi network.
+1. Connect to the `intelligence-Setup` Wi-Fi network.
 2. Open `http://192.168.4.1` in a browser.
 3. Fill in your Wi-Fi SSID/password and MQTT broker host/port (and optional user/
    pass), then **Save & Restart**.
@@ -195,7 +195,7 @@ from LittleFS (or erase flash).
 All tunables live in [`include/config.h`](include/config.h):
 
 - **Pins** — the wiring table above.
-- **MQTT** — `MQTT_BASE_TOPIC` (`homeinteligence`), broker host/port, client ID,
+- **MQTT** — `MQTT_BASE_TOPIC` (`homeintelligence`), broker host/port, client ID,
   credentials (used only as a fallback; the portal overrides them).
 - **Timing** — sensor interval (10 s), MQ-2 preheat (40 s), MQ-2 threshold (600),
   buzzer duty cycle (2 s).
@@ -206,7 +206,7 @@ All tunables live in [`include/config.h`](include/config.h):
 
 The same text commands work two ways:
 - typed into the **Serial monitor** at 115200, or
-- published to the **MQTT command topic** `homeinteligence/command`.
+- published to the **MQTT command topic** `homeintelligence/command`.
 
 ### Serial & MQTT Commands
 
@@ -234,25 +234,25 @@ buzzer off
 
 ### MQTT Topics
 
-Published to (base = `homeinteligence`):
+Published to (base = `homeintelligence`):
 
 | Topic | Payload | Trigger |
 |-------|---------|---------|
-| `homeinteligence/sensor/LDR` | light reading | every 10 s |
-| `homeinteligence/sensor/TEMP` | °C | every 10 s |
-| `homeinteligence/sensor/HUM` | % humidity | every 10 s |
-| `homeinteligence/sensor/PIR` | `0`/`1` | every 10 s |
-| `homeinteligence/sensor/MQ2` | gas reading | every 10 s (after warm-up) |
-| `homeinteligence/alarm` | `MQ2 threshold exceeded!` / `Motion Detected!` | when an incident occured (also starts the buzzer) |
+| `homeintelligence/sensor/LDR` | light reading | every 10 s |
+| `homeintelligence/sensor/TEMP` | °C | every 10 s |
+| `homeintelligence/sensor/HUM` | % humidity | every 10 s |
+| `homeintelligence/sensor/PIR` | `0`/`1` | every 10 s |
+| `homeintelligence/sensor/MQ2` | gas reading | every 10 s (after warm-up) |
+| `homeintelligence/alarm` | `MQ2 threshold exceeded!` / `Motion Detected!` | when an incident occured (also starts the buzzer) |
 
 Subscribed to:
 
 | Topic | Payload |
 |-------|---------|
-| `homeinteligence/command` | any command from the table above |
+| `homeintelligence/command` | any command from the table above |
 
 So to toggle the buzzer from your broker, publish `buzzer on` to
-`homeinteligence/command`.
+`homeintelligence/command`.
 
 ---
 

@@ -42,7 +42,7 @@ void turnONMotionDetection()
     }
 
     Serial.println("Motion Detection: ON");
-    publishMQTT(MQTT_Alarm_Topic, "Motion Detection: ON");
+    publishMQTT(MQTT_Alarm_Topic, "Motion Detection: ON", true);
 }
 
 void turnOFFMotionDetection()
@@ -60,7 +60,7 @@ void turnOFFMotionDetection()
     }
 
     Serial.println("Motion Detection: OFF");
-    publishMQTT(MQTT_Alarm_Topic, "Motion Detection: OFF");
+    publishMQTT(MQTT_Alarm_Topic, "Motion Detection: OFF", true);
 }
 
 void checkMotionDetection()
