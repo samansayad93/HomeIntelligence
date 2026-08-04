@@ -84,19 +84,17 @@ function setChip(chip, label, state) {
 }
 
 /* ----------------------------- state ----------------------------- */
-const STORAGE_KEY = "inteligence.web.settings.v1";
-const SIGNALS_KEY = "inteligence.web.signals.v1";
+const STORAGE_KEY = "intelligence.web.settings.v1";
 
 let client = null;
-let baseTopic = "homeinteligence";
+let baseTopic = "homeintelligence";
 let device = "";                  // device name — inserted into every topic path
 let intentionallyClosed = false;
 const cards = {};      // kind -> { card, num, sub, chip, bar, time, chart, ts }
-/* saved signal names per kind (rf / ir), so each section gets its own clickable list */
-const signalStore = loadSignals();
-/* latest device-reported signal lists (rf / ir); null until the first RF/list|IR/list
-   message arrives. When present it overrides the locally remembered chips. */
-const deviceSignals = { rf: null, ir: null };
+/* live device-reported signal lists (rf / ir). Not cached: fetched fresh from the
+   device over MQTT every time the dashboard connects. Each RF/list|IR/list message
+   carries one signal object, merged by index. */
+const deviceSignals = { rf: [], ir: [] };
 
 /* ----------------------------- dom ----------------------------- */
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -126,7 +124,7 @@ function saveJSON(key, val) {
 }
 function loadSettings() {
   return Object.assign(
-    { protocol: "ws", host: "", port: "9001", path: "/mqtt", baseTopic: "homeinteligence", device: "", clientId: "", username: "", password: "" },
+    { protocol: "ws", host: "", port: "9001", path: "/mqtt", baseTopic: "homeintelligence", device: "", clientId: "", username: "", password: "" },
     loadJSON(STORAGE_KEY, {})
   );
 }
@@ -209,7 +207,7 @@ function readForm() {
     host: (fd.get("host") || "").trim(),
     port: (fd.get("port") || "").trim(),
     path: (fd.get("path") || "").trim() || "/mqtt",
-    baseTopic: (fd.get("baseTopic") || "").trim() || "homeinteligence",
+    baseTopic: (fd.get("baseTopic") || "").trim() || "homeintelligence",
     device: (fd.get("device") || "").trim(),
     clientId: (fd.get("clientId") || "").trim(),
     username: (fd.get("username") || "").trim(),
@@ -258,6 +256,12 @@ function connect() {
     client.subscribe(subs, (err) => {
       if (err) { log("sys", "subscribe", String(err)); return; }
       log("sys", "subscribe", subs.join(", "));
+      /* Signals are never cached — fetch them fresh from the device on every connect. */
+      deviceSignals.rf = [];
+      deviceSignals.ir = [];
+      renderSignalLists();
+      sendCommand("rf list");
+      sendCommand("ir list");
     });
     setButtons(true);
   });
@@ -342,7 +346,6 @@ function sendCommand(cmd) {
 function captureSignal(kind, name) {
   if (!name) { flashHint(`Enter a name for the ${kind} signal.`); return false; }
   sendCommand(`${kind} rx ${name}`);
-  rememberSignal(kind, name);
   return true;
 }
 function transmitSignal(kind, name) {
@@ -351,24 +354,8 @@ function transmitSignal(kind, name) {
   return true;
 }
 
-/* saved-signal persistence: stored per kind so RF and IR names stay separate */
-function loadSignals() {
-  const raw = loadJSON(SIGNALS_KEY, null);
-  if (raw && Array.isArray(raw.rf) && Array.isArray(raw.ir)) return { rf: raw.rf.slice(), ir: raw.ir.slice() };
-  return { rf: [], ir: [] };
-}
-function saveSignals() { saveJSON(SIGNALS_KEY, signalStore); }
-
-function rememberSignal(kind, name) {
-  const list = signalStore[kind];
-  if (!list.includes(name)) {
-    list.push(name);
-    saveSignals();
-    renderSignalLists();
-  }
-}
-
-/* render the clickable saved-signal lists + per-kind autocomplete options */
+/* render the device-reported signal tables + per-kind autocomplete options.
+   Signals are never cached: the tables reflect whatever the device last reported. */
 function renderSignalLists() {
   renderSignalList("rf", $("#rfSignals"));
   renderSignalList("ir", $("#irSignals"));
@@ -378,82 +365,55 @@ function renderSignalList(kind, el) {
   if (!el) return;
   el.innerHTML = "";
 
-  const deviceList = deviceSignals[kind];
-  if (Array.isArray(deviceList)) {
-    /* the device has reported its saved signals — show them with full detail */
-    el.classList.add("siglist--cards");
-    if (!deviceList.length) {
-      el.innerHTML = `<span class="siglist__empty">No saved signals on the device — capture one above, then press List.</span>`;
-      return;
-    }
-    deviceList.forEach(s => { if (s) el.appendChild(buildSignalCard(kind, s)); });
-    return;
-  }
-
-  /* no device list yet — fall back to locally remembered name chips */
-  el.classList.remove("siglist--cards");
-  const names = signalStore[kind];
-  if (!names.length) {
+  const list = deviceSignals[kind] || [];
+  if (!list.length) {
     el.innerHTML = `<span class="siglist__empty">No saved signals — capture one above or press List.</span>`;
     return;
   }
-  names.forEach(name => {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = `sig sig--${kind}`;
-    btn.title = `${kind} tx ${name}`;
-    btn.textContent = name;
-    btn.addEventListener("click", () => transmitSignal(kind, name));
-    el.appendChild(btn);
-  });
-}
 
-/* build a rich, transmit-on-click card for one device-reported signal.
-   IR: {index,name,protocol,value,bits}   RF: {index,name,code,bits,protocol,pulse,band} */
-function buildSignalCard(kind, s) {
-  const name = s && s.name ? String(s.name) : "(unnamed)";
-  const card = document.createElement("div");
-  card.className = `sigcard sigcard--${kind}`;
+  const table = document.createElement("table");
+  table.className = `sigtable sigtable--${kind}`;
 
-  const meta = [];
-  if (s.index != null) meta.push(`#${s.index}`);
-  meta.push(kind.toUpperCase());
-  if (s.protocol != null) meta.push(`proto ${s.protocol}`);
-  if (kind === "rf" && s.band != null) meta.push(`${s.band} MHz`);
-  if (s.bits != null) meta.push(`${s.bits} bit`);
-
-  const detail = [];
   if (kind === "rf") {
-    if (s.code != null) detail.push(`code ${formatCode(s.code)}`);
-    if (s.pulse != null) detail.push(`${s.pulse}μs pulse`);
+    table.innerHTML = `<thead><tr><th>Name</th><th>Freq</th><th></th></tr></thead>`;
   } else {
-    if (s.value != null) detail.push(`value ${formatCode(s.value)}`);
+    table.innerHTML = `<thead><tr><th>Name</th><th></th></tr></thead>`;
   }
 
-  card.innerHTML =
-    `<div class="sigcard__main">` +
-      `<div class="sigcard__name">${escapeHTML(name)}</div>` +
-      (meta.length ? `<div class="sigcard__meta">${escapeHTML(meta.join(" · "))}</div>` : "") +
-      (detail.length ? `<div class="sigcard__detail"><code>${escapeHTML(detail.join(" · "))}</code></div>` : "") +
-    `</div>` +
-    `<button type="button" class="btn btn--sm sigcard__tx sigcard__tx--${kind}" title="${kind} tx ${escapeHTML(name)}">Transmit</button>`;
-
-  $(".sigcard__tx", card).addEventListener("click", () => transmitSignal(kind, name));
-  return card;
+  const tbody = document.createElement("tbody");
+  list.forEach(s => { if (s) tbody.appendChild(buildSignalRow(kind, s)); });
+  table.appendChild(tbody);
+  el.appendChild(table);
 }
 
-/* format an RF code / IR value: hex for larger numbers, plain decimal otherwise.
-   IR values are uint64 — above JS's safe-integer range we fall back to the raw number. */
-function formatCode(v) {
-  const n = typeof v === "number" ? v : Number(v);
-  if (!Number.isFinite(n)) return String(v);
-  if (!Number.isSafeInteger(n)) return String(n);
-  return n > 0xff ? `0x${n.toString(16).toUpperCase()} (${n})` : String(n);
+/* build one table row for a device-reported signal. Clicking the row (or its
+   Transmit button) replays the signal.
+   IR: {index,name,protocol,value,bits}   RF: {index,name,code,bits,protocol,pulse,band} */
+function buildSignalRow(kind, s) {
+  const name = s && s.name ? String(s.name) : "(unnamed)";
+  const tr = document.createElement("tr");
+  tr.className = `sigrow sigrow--${kind}`;
+  tr.title = `${kind} tx ${name} — click to transmit`;
+
+  const nameCell = `<td class="sigrow__name">${escapeHTML(name)}</td>`;
+  const freqCell = (kind === "rf")
+    ? `<td class="sigrow__freq">${s.band != null ? escapeHTML(`${s.band} MHz`) : "—"}</td>`
+    : "";
+  const actionCell =
+    `<td class="sigrow__action">` +
+      `<button type="button" class="btn btn--sm sigrow__tx sigrow__tx--${kind}" title="${kind} tx ${escapeHTML(name)}">Transmit</button>` +
+    `</td>`;
+
+  tr.innerHTML = nameCell + freqCell + actionCell;
+  const fire = (e) => { e.stopPropagation(); transmitSignal(kind, name); };
+  tr.addEventListener("click", fire);
+  $(".sigrow__tx", tr).addEventListener("click", fire);
+  return tr;
 }
 
 /* parse a device-published RF/list or IR/list payload and refresh that section.
-   Accepts a full JSON array (typical) or a single signal object streamed one at a
-   time, merged by index. */
+   Each message carries one signal object (streamed one at a time by the firmware);
+   it is merged into the running list by index. */
 function handleSignalList(kind, msg) {
   let data;
   try { data = JSON.parse(msg); }
@@ -470,7 +430,6 @@ function handleSignalList(kind, msg) {
   list = list.filter(s => s && typeof s === "object" && (s.name != null || s.index != null));
 
   deviceSignals[kind] = list;
-  mergeDeviceNames(kind, list);   // keep autocomplete + local chips in sync with the device
   renderSignalLists();
   log("sys", `${kind}/list`, `${list.length} signal${list.length === 1 ? "" : "s"} loaded`);
 }
@@ -482,21 +441,13 @@ function mergeSignalObject(kind, obj) {
   if (at >= 0) cur[at] = obj; else cur.push(obj);
   return cur;
 }
-
-/* fold device-reported names into the locally remembered store (drives autocomplete) */
-function mergeDeviceNames(kind, list) {
-  const names = signalStore[kind];
-  let changed = false;
-  list.forEach(s => {
-    const n = s && s.name;
-    if (n && !names.includes(n)) { names.push(n); changed = true; }
-  });
-  if (changed) saveSignals();
-}
 function refreshDatalists() {
   for (const kind of ["rf", "ir"]) {
     const dl = $(`#${kind}SignalNames`);
-    if (dl) dl.innerHTML = signalStore[kind].map(n => `<option value="${escapeHTML(n)}"></option>`).join("");
+    if (dl) {
+      const names = (deviceSignals[kind] || []).map(s => s && s.name).filter(Boolean);
+      dl.innerHTML = names.map(n => `<option value="${escapeHTML(n)}"></option>`).join("");
+    }
   }
 }
 

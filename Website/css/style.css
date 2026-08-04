@@ -309,43 +309,44 @@ input::placeholder { color: var(--text-faint); }
 .divider { border: 0; border-top: 1px solid var(--stroke-soft); margin: 4px 0 14px; }
 
 /* saved-signal chips — click a name to transmit it */
-.siglist { display: flex; flex-wrap: wrap; gap: 6px; align-content: flex-start; }
 .siglist__empty { font-size: .8rem; color: var(--text-faint); }
-.sig {
-  background: var(--card-2);
-  border: 1px solid var(--stroke);
-  color: var(--text);
-  padding: 5px 12px;
-  border-radius: 999px;
-  font-size: .8rem;
-  font-weight: 550;
-  cursor: pointer;
-  transition: background .15s ease, border-color .15s ease, transform .05s ease;
-}
-.sig:hover { background: #222b42; }
-.sig:active { transform: translateY(1px); }
-.sig--rf:hover { border-color: var(--accent); color: var(--accent); }
-.sig--ir:hover { border-color: var(--motion); color: var(--motion); }
 
-/* device-reported signal cards — full detail + transmit */
-.siglist--cards { flex-direction: column; flex-wrap: nowrap; align-content: stretch; gap: 8px; }
-.sigcard {
-  display: flex; align-items: center; gap: 10px; width: 100%;
-  background: var(--card-2); border: 1px solid var(--stroke);
-  border-radius: var(--radius-sm); padding: 9px 11px;
-  transition: border-color .15s ease, background .15s ease;
+/* device-reported signal tables — name (+freq for RF) and a Transmit action.
+   Not cached: rebuilt from the live device list every time it arrives. */
+.sigtable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .82rem;
+  margin-top: 4px;
 }
-.sigcard:hover { background: #222b42; }
-.sigcard--rf { border-left: 3px solid var(--accent); }
-.sigcard--ir { border-left: 3px solid var(--motion); }
-.sigcard__main { flex: 1 1 auto; min-width: 0; }
-.sigcard__name { font-size: .85rem; font-weight: 600; color: var(--text); overflow-wrap: anywhere; }
-.sigcard__meta { font-size: .66rem; color: var(--text-faint); margin-top: 2px; text-transform: uppercase; letter-spacing: .3px; }
-.sigcard__detail { font-size: .7rem; margin-top: 3px; }
-.sigcard__detail code { font-family: var(--mono); color: var(--text-dim); }
-.sigcard__tx { flex: 0 0 auto; }
-.sigcard__tx--rf:hover { border-color: var(--accent); color: var(--accent); }
-.sigcard__tx--ir:hover { border-color: var(--motion); color: var(--motion); }
+.sigtable th {
+  text-align: left;
+  font-size: .64rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  color: var(--text-faint);
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--stroke);
+}
+.sigtable th:last-child { width: 1%; }
+.sigrow {
+  cursor: pointer;
+  transition: background .12s ease;
+}
+.sigrow:hover { background: #222b42; }
+.sigrow td {
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--stroke);
+  vertical-align: middle;
+}
+.sigrow:last-child td { border-bottom: none; }
+.sigrow__name { font-weight: 600; color: var(--text); overflow-wrap: anywhere; }
+.sigrow__freq { color: var(--text-dim); font-family: var(--mono); white-space: nowrap; }
+.sigrow--rf { box-shadow: inset 3px 0 0 var(--accent); }
+.sigrow--ir { box-shadow: inset 3px 0 0 var(--motion); }
+.sigrow__tx--rf:hover { border-color: var(--accent); color: var(--accent); }
+.sigrow__tx--ir:hover { border-color: var(--motion); color: var(--motion); }
 
 /* active toggle highlight */
 .btn--seg.is-on { background: linear-gradient(135deg, var(--accent), var(--accent-2)); border-color: transparent; color: #fff; }
