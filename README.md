@@ -24,6 +24,7 @@ hard-coded into the firmware.
 - [Usage](#usage)
   - [Serial & MQTT Commands](#serial--mqtt-commands)
   - [MQTT Topics](#mqtt-topics)
+- [Web Dashboard](#web-dashboard)
 - [RF — Dual Band (433 & 315 MHz)](#rf--dual-band-433--315-mhz)
 - [Persistent Storage](#persistent-storage)
 - [Dependencies](#dependencies)
@@ -39,6 +40,9 @@ hard-coded into the firmware.
   readings on a configurable base topic.
 - **MQTT control** — the same commands available over Serial are accepted over an
   MQTT command topic.
+- **Web dashboard** — a server-less browser dashboard (in [`Website/`](Website/))
+  connects directly to the broker over WebSocket to show live telemetry and send
+  the same commands (see [Web Dashboard](#web-dashboard)).
 - **RF capture & replay** — record 433 *or* 315 MHz signals by name and replay
   them later. Both bands are handled simultaneously (see
   [RF — Dual Band](#rf--dual-band-433--315-mhz)).
@@ -99,7 +103,7 @@ module orchestrates the others from `loop()`.
 |--------|----------------|
 | `main` | Setup/loop entry; routes MQTT commands to the serial handler |
 | `Sensors` | Periodic sensor reads, RF/IR receive polling, alarm ticking |
-| `Provisioning` | Captive Wi-Fi AP + web form to capture Wi-Fi/MQTT creds |
+| `Provisioning` | Captive Wi-Fi AP + DNS hijack + web form to capture Wi-Fi/MQTT/device creds |
 | `MQTT` | Wi-Fi STA connect, PubSubClient connect/reconnect, publish/subscribe |
 | `Serial` | Text command parser (shared by Serial and MQTT) + `help` |
 | `RF` | Dual-band (433/315) RF capture & replay via RCSwitch |
@@ -115,6 +119,11 @@ module orchestrates the others from `loop()`.
 up sensors + MQTT → prints help.
 
 `loop()` → `handleSerial()` → `handleMQTT()` → `handleSensors()`.
+
+`handleMQTT()` also guards the Wi-Fi link: if the board cannot reach the configured
+Wi-Fi for a sustained period (30 s), it falls back to the provisioning portal so a
+misconfigured network can be corrected without erasing flash. A broker-only outage
+(Wi-Fi up, broker down) does **not** trigger this — it just keeps retrying MQTT.
 
 `handleSensors()` polls for an in-progress RF/IR capture, ticks the alarm buzzer,
 optionally checks PIR motion, and every 10 s prints and publishes the sensor suite
@@ -133,6 +142,7 @@ warm-up.
 │   ├── main.cpp
 │   └── <Module>/*.cpp
 ├── lib/                    # (project-local libraries, currently empty)
+├── Website/                # Server-less browser dashboard (MQTT over WebSocket)
 ├── test/
 └── note.md                 # Developer to-do / known-bugs scratchpad
 ```
@@ -176,29 +186,39 @@ When the board boots without a saved profile it starts a Wi-Fi access point:
 
 | | |
 |---|---|
-| **SSID** | `intelligence-Setup` |
-| **Password** | `123456` |
+| **SSID** | `Intelligence-Setup` |
+| **Password** | `12345678` |
 | **Setup URL** | `http://192.168.4.1` |
 
-1. Connect to the `intelligence-Setup` Wi-Fi network.
-2. Open `http://192.168.4.1` in a browser.
-3. Fill in your Wi-Fi SSID/password and MQTT broker host/port (and optional user/
-   pass), then **Save & Restart**.
+The AP runs a **captive portal**: it hijacks DNS and intercepts the OS
+connectivity-check probes (iOS, Android, Windows), so connecting to the AP usually
+pops the setup page automatically.
+
+1. Connect to the `Intelligence-Setup` Wi-Fi network (the portal may open on its
+   own).
+2. Open `http://192.168.4.1` in a browser if it did not.
+3. Fill in your Wi-Fi SSID/password, MQTT broker host/port (and optional user/
+   pass), and a **Device** name. The device name becomes the per-device segment of
+   every MQTT topic (see [MQTT Topics](#mqtt-topics)), so give each board a unique
+   one. Then **Save & Restart**.
 4. The board reboots, joins your Wi-Fi, and connects to the broker.
 
 If no provisioning profile exists, the firmware falls back to the `WIFI_SSID` /
 `MQTT_HOST` constants in `config.h`. To re-provision, delete `/provisioning.json`
-from LittleFS (or erase flash).
+from LittleFS (or erase flash), or simply leave the board unable to reach Wi-Fi for
+30 s — it will relaunch the portal automatically.
 
 ## Configuration
 
 All tunables live in [`include/config.h`](include/config.h):
 
 - **Pins** — the wiring table above.
-- **MQTT** — `MQTT_BASE_TOPIC` (`homeintelligence`), broker host/port, client ID,
-  credentials (used only as a fallback; the portal overrides them).
+- **MQTT** — `MQTT_BASE_TOPIC` (`homeintelligence`), broker host/port, client ID
+  (`esp32-intelligence`, used as the per-device topic segment when no device name is
+  provisioned), credentials (used only as a fallback; the portal overrides them).
 - **Timing** — sensor interval (10 s), MQ-2 preheat (40 s), MQ-2 threshold (600),
-  buzzer duty cycle (2 s).
+  buzzer duty cycle (2 s), MQTT reconnect interval (1 s), Wi-Fi provisioning
+  fallback (30 s).
 
 ---
 
@@ -206,7 +226,8 @@ All tunables live in [`include/config.h`](include/config.h):
 
 The same text commands work two ways:
 - typed into the **Serial monitor** at 115200, or
-- published to the **MQTT command topic** `homeintelligence/command`.
+- published to the **MQTT command topic** `<base>/<device>/command`, e.g.
+  `homeintelligence/esp32-intelligence/command` (see [MQTT Topics](#mqtt-topics)).
 
 ### Serial & MQTT Commands
 
@@ -214,10 +235,10 @@ The same text commands work two ways:
 |---------|--------|
 | `rf rx <name>` | Wait for an RF signal (433 **or** 315) and save it as `<name>` |
 | `rf tx <name>` | Transmit the RF signal saved as `<name>` (on its original band) |
-| `rf list` | List saved RF signals (name, band, code, bits, protocol, pulse) |
+| `rf list` | List saved RF signals (name, band, code, bits, protocol, pulse) — printed to Serial **and** published to `…/RF/list` |
 | `ir rx <name>` | Wait for an IR signal and save it as `<name>` |
 | `ir tx <name>` | Transmit the IR signal saved as `<name>` |
-| `ir list` | List saved IR signals |
+| `ir list` | List saved IR signals — printed to Serial **and** published to `…/IR/list` |
 | `buzzer on` / `buzzer off` | Start / stop the alarm buzzer |
 | `motion on` / `motion off` | Start / stop the motion detection |
 | `help` | Print the command list |
@@ -234,25 +255,65 @@ buzzer off
 
 ### MQTT Topics
 
-Published to (base = `homeintelligence`):
+All topics are namespaced per device: `<base>/<device>/<subtopic>`, where `<base>`
+is `MQTT_BASE_TOPIC` (`homeintelligence`) and `<device>` is the name set in the
+provisioning portal (or `MQTT_CLIENT_ID`, `esp32-intelligence`, as a fallback). The
+examples below use `homeintelligence/esp32-intelligence`.
+
+Published to:
 
 | Topic | Payload | Trigger |
 |-------|---------|---------|
-| `homeintelligence/sensor/LDR` | light reading | every 10 s |
-| `homeintelligence/sensor/TEMP` | °C | every 10 s |
-| `homeintelligence/sensor/HUM` | % humidity | every 10 s |
-| `homeintelligence/sensor/PIR` | `0`/`1` | every 10 s |
-| `homeintelligence/sensor/MQ2` | gas reading | every 10 s (after warm-up) |
-| `homeintelligence/alarm` | `MQ2 threshold exceeded!` / `Motion Detected!` | when an incident occured (also starts the buzzer) |
+| `…/sensor/LDR` | light reading | every 10 s |
+| `…/sensor/TEMP` | °C | every 10 s |
+| `…/sensor/HUM` | % humidity | every 10 s |
+| `…/sensor/PIR` | `0`/`1` | every 10 s |
+| `…/sensor/MQ2` | gas reading | every 10 s (after warm-up) |
+| `…/alarm` | `MQ2 threshold exceeded!` / `Motion Detected!` | when an incident occurs (also starts the buzzer) |
+| `…/alarm` | `Motion Detection: ON` / `Motion Detection: OFF` | when motion detection is armed/disarmed (retained) |
+| `…/RF/list` | JSON per saved RF signal (`name`, `code`, `bits`, `protocol`, `pulse`, `band`) | on `rf list` |
+| `…/IR/list` | JSON per saved IR signal (`name`, `protocol`, `value`, `bits`) | on `ir list` |
+
+(`…` = `homeintelligence/<device>`.)
 
 Subscribed to:
 
 | Topic | Payload |
 |-------|---------|
-| `homeintelligence/command` | any command from the table above |
+| `…/command` | any command from the table above |
 
 So to toggle the buzzer from your broker, publish `buzzer on` to
-`homeintelligence/command`.
+`homeintelligence/esp32-intelligence/command`.
+
+---
+
+## Web Dashboard
+
+A self-contained, server-less dashboard lives in [`Website/`](Website/). It connects
+**directly from the browser to your MQTT broker over WebSocket** (no backend, no
+build step) to render live sensor cards with sparklines, an alarm banner, and a set
+of control buttons that publish the same commands as Serial.
+
+```
+┌────────────┐   WebSocket (ws/wss)   ┌──────────────┐   TCP 1883   ┌────────────┐
+│  Browser   │ ─────────────────────▶ │  MQTT broker │ ───────────▶ │   ESP32    │
+│  dashboard │ ◀───────────────────── │  (Mosquitto) │ ◀─────────── │  (firmware)│
+└────────────┘   sensor/+alarm  (sub) └──────────────┘  command (pub)└────────────┘
+```
+
+Because browsers cannot speak raw MQTT/TCP, your broker must expose a **WebSocket
+listener** (e.g. Mosquitto `listener 9001` + `protocol websockets`). The dashboard
+subscribes to `<base>/<device>/sensor/#` and `<base>/<device>/alarm`, and publishes
+to `<base>/<device>/command` — set the same `<device>` you provisioned.
+
+Quick start:
+
+```bash
+cd Website
+python3 -m http.server 8080      # then open http://localhost:8080
+```
+
+Full setup, options, and troubleshooting are in [`Website/README.md`](Website/README.md).
 
 ---
 
@@ -313,13 +374,7 @@ PlatformIO installs these automatically on first build.
 Tracked in [`note.md`](note.md):
 
 - **IR TX does not currently work** (RX is functional).
-- MQ-2 driver is flagged for cleanup but operates correctly.
-- RF functionality is the active area of work (dual-band support recently added).
-
-Planned hardening:
-
-- Proper error reporting for DHT reads (currently NaN is published as `0`).
-- Robust error handling for LittleFS file open failures.
+- Make the web dashboard multi-page.
 
 ---
 
