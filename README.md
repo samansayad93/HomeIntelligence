@@ -216,7 +216,7 @@ All tunables live in [`include/config.h`](include/config.h):
 - **MQTT** — `MQTT_BASE_TOPIC` (`homeintelligence`), broker host/port, client ID
   (`esp32-intelligence`, used as the per-device topic segment when no device name is
   provisioned), credentials (used only as a fallback; the portal overrides them).
-- **Timing** — sensor interval (10 s), MQ-2 preheat (40 s), MQ-2 threshold (600),
+- **Timing** — sensor interval (10 s), MQ-2 preheat (40 s), MQ-2 threshold (700),
   buzzer duty cycle (2 s), MQTT reconnect interval (1 s), Wi-Fi provisioning
   fallback (30 s).
 
