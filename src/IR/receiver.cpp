@@ -61,6 +61,7 @@ bool handleIRReceive(bool &receivingIR, const String &receiveName)
         {
             Serial.print("Saved IR signal: ");
             Serial.println(receiveName);
+            pulseStatusLED();
             return true;
         }
         else

@@ -16,6 +16,7 @@ void setupSensors()
     nextMQ2ReadAt = mq2ReadyAt;
     loadRFSignals();
     loadIRSignals();
+    setupStatusLED();
 }
 
 void printMQ2()
@@ -99,6 +100,8 @@ void handleSensors()
     handleRFReceive(receivingRF, receiveName);
     handleIRReceive(receivingIR, receiveName);
     updateAlarm();
+    updateStatusLED();
+    updatePulseLED();
     checkMotionDetection();
     printSensors();
 }

@@ -11,5 +11,6 @@ bool transmitRFSignal(const RFSignal *signal)
     sw->setProtocol(signal->protocol);
     sw->setPulseLength(signal->pulse);
     sw->send(signal->code, signal->bits);
+    pulseStatusLED();
     return true;
 }

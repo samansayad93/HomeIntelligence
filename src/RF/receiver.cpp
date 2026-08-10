@@ -69,6 +69,7 @@ bool handleRFReceive(bool &receivingRF, const String &receiveName)
             Serial.print(" (");
             Serial.print(signals[signalCount - 1].band);
             Serial.println(" MHz)");
+            pulseStatusLED();
             return true;
         }
         else
