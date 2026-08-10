@@ -9,7 +9,7 @@
 /* Each sensor maps a device topic suffix (relative to the base topic) to a card. */
 
 const ADC_MAX = 4095;            // ESP32 12-bit ADC
-const MQ2_THRESHOLD = 600;       // matches config.h MQ2_THRESHOLD
+const MQ2_THRESHOLD = 700;       // matches config.h MQ2_THRESHOLD
 const STALE_MS = 30000;          // mark a sensor stale after 30s without data
 const CHART_POINTS = 40;
 
