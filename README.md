@@ -35,7 +35,11 @@ hard-coded into the firmware.
 ## Features
 
 - **Provisioning portal** — configure Wi-Fi + MQTT from a phone/laptop on first
-  boot; no rebuild required to change networks.
+  boot; no rebuild required to change networks. The board runs in `WIFI_AP_STA`,
+  so the `Intelligence-Setup` AP stays **always on** — you can connect to it at any
+  time, even while the board is correctly joined to your router, and change the
+  broker or Wi-Fi AP without erasing flash (see
+  [First-Boot Provisioning](#first-boot-provisioning)).
 - **MQTT telemetry** — publishes light, temperature, humidity, gas, and motion
   readings on a configurable base topic.
 - **MQTT control** — the same commands available over Serial are accepted over an
@@ -110,7 +114,7 @@ module orchestrates the others from `loop()`.
 |--------|----------------|
 | `main` | Setup/loop entry; routes MQTT commands to the serial handler |
 | `Sensors` | Periodic sensor reads, RF/IR receive polling, alarm ticking |
-| `Provisioning` | Captive Wi-Fi AP + DNS hijack + web form to capture Wi-Fi/MQTT/device creds |
+| `Provisioning` | Always-on `WIFI_AP_STA` soft AP (`Intelligence-Setup`) + DNS hijack + web form to capture/change Wi-Fi/MQTT/device creds; reachable at any time, even while joined to the router |
 | `MQTT` | Wi-Fi STA connect, PubSubClient connect/reconnect, publish/subscribe |
 | `Serial` | Text command parser (shared by Serial and MQTT) + `help` |
 | `RF` | Dual-band (433/315) RF capture & replay via RCSwitch |
@@ -123,15 +127,18 @@ module orchestrates the others from `loop()`.
 
 ### Runtime loop
 
-`setup()` → begins Serial → runs provisioning portal if not yet provisioned → sets
-up sensors + MQTT → prints help.
+`setup()` → begins Serial → loads the saved provisioning profile → starts the
+always-on config AP (`WIFI_AP_STA`) → sets up sensors + MQTT → prints help.
 
-`loop()` → `handleSerial()` → `handleMQTT()` → `handleSensors()`.
+`loop()` → `handleSerial()` → `handleMQTT()` → `handleConfigAP()` → `handleSensors()`.
 
-`handleMQTT()` also guards the Wi-Fi link: if the board cannot reach the configured
-Wi-Fi for a sustained period (30 s), it falls back to the provisioning portal so a
-misconfigured network can be corrected without erasing flash. A broker-only outage
-(Wi-Fi up, broker down) does **not** trigger this — it just keeps retrying MQTT.
+The board runs in `WIFI_AP_STA`: the station joins the provisioned router for MQTT
+telemetry, while the `Intelligence-Setup` soft AP keeps broadcasting so the config
+portal at `http://192.168.4.1` is reachable at any time — first boot or fully
+provisioned and online alike. If Wi-Fi won't join, the station link is simply
+retried; the AP (and thus re-provisioning) is always available regardless. A
+broker-only outage (Wi-Fi up, broker down) does **not** affect the AP — it just keeps
+retrying MQTT.
 
 `handleSensors()` polls for an in-progress RF/IR capture, ticks the alarm buzzer,
 ticks the status LED (heartbeat + any capture/transmit pulse), optionally checks
@@ -191,7 +198,8 @@ humidity, PIR). MQ-2 is read on its own 10 s cadence after a 5 min warm-up.
 
 ## First-Boot Provisioning
 
-When the board boots without a saved profile it starts a Wi-Fi access point:
+The board always boots in `WIFI_AP_STA` — it joins your router as a station (for
+MQTT) **and** continuously broadcasts a setup access point:
 
 | | |
 |---|---|
@@ -213,9 +221,28 @@ pops the setup page automatically.
 4. The board reboots, joins your Wi-Fi, and connects to the broker.
 
 If no provisioning profile exists, the firmware falls back to the `WIFI_SSID` /
-`MQTT_HOST` constants in `config.h`. To re-provision, delete `/provisioning.json`
-from LittleFS (or erase flash), or simply leave the board unable to reach Wi-Fi for
-30 s — it will relaunch the portal automatically.
+`MQTT_HOST` constants in `config.h` for the station link. To re-provision, you do
+not need to erase flash or trigger a failure — see below.
+
+### Re-provisioning while connected (always-on config AP)
+
+The `Intelligence-Setup` AP stays **up even while the board is correctly joined to
+your router**, so you can change the **MQTT broker** or the **Wi-Fi AP** at any time
+without erasing flash, dropping the station link on purpose, or waiting for a
+failure:
+
+1. From any phone/laptop, connect to the `Intelligence-Setup` Wi-Fi network
+   (`12345678`).
+2. Open `http://192.168.4.1` in a browser (the captive portal may open on its own).
+3. The form is **prefilled** with the current SSID, broker host/port, username,
+   and device name, so you can edit just the field you want to change. Password
+   fields are left blank on purpose (they are not echoed back); **leave them blank
+   to keep the current password**, or type a new one to replace it.
+4. **Save & Restart** — the board writes the new profile and reboots into it.
+
+Because the board keeps its station link up during normal operation, you can also
+still reach it over your normal LAN at its station IP for MQTT/dashboard traffic;
+only configuration changes go through the `Intelligence-Setup` AP.
 
 ## Configuration
 
@@ -226,8 +253,8 @@ All tunables live in [`include/config.h`](include/config.h):
   (`esp32-intelligence`, used as the per-device topic segment when no device name is
   provisioned), credentials (used only as a fallback; the portal overrides them).
 - **Timing** — sensor interval (10 s), MQ-2 preheat (5 min), MQ-2 threshold (700),
-  buzzer duty cycle (2 s), MQTT reconnect interval (1 s), Wi-Fi provisioning
-  fallback (30 s), status LED heartbeat (1 s on / 5 s off, 500 ms pulse).
+  buzzer duty cycle (2 s), MQTT reconnect interval (1 s), status LED heartbeat
+  (1 s on / 5 s off, 500 ms pulse).
 
 ---
 
