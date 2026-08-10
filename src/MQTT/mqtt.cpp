@@ -61,9 +61,6 @@ static void connectWiFi()
                             ? provisioningConfig.wifiPassword.c_str()
                             : WIFI_PASSWORD;
 
-    // Mode (WIFI_AP_STA) is set once by startConfigAP() so the config AP stays
-    // up for re-provisioning; don't touch it here — calling WIFI_STA would tear
-    // the AP down. Just (re)join the configured router.
     WiFi.begin(ssid, wpass);
     Serial.print("Connecting WiFi to ");
     Serial.println(ssid);
@@ -140,10 +137,6 @@ void handleMQTT()
 {
     if (WiFi.status() != WL_CONNECTED)
     {
-        // The config AP is always up (WIFI_AP_STA), so re-provisioning is
-        // reachable at http://192.168.4.1 whenever Wi-Fi won't join — just
-        // keep retrying the station link here. A broker-only outage (Wi-Fi up,
-        // broker down) likewise just keeps retrying MQTT.
         unsigned long now = millis();
         if (now - lastReconnectAttempt >= MQTT_RECONNECT_INTERVAL)
         {

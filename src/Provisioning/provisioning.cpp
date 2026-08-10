@@ -309,8 +309,6 @@ void startConfigAP()
 
 void handleConfigAP()
 {
-    // After a successful save, let the saved-page response flush, then reboot
-    // into the new configuration.
     if (provisioningDone)
     {
         Serial.println("Config AP: saved, restarting...");
