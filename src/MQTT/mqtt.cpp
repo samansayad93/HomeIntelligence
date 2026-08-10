@@ -14,8 +14,8 @@ static String topicFor(const String &subTopic)
 {
     String topic = MQTT_BASE_TOPIC;
     String device = provisioningConfig.client.length() > 0
-                    ? provisioningConfig.client
-                    : MQTT_CLIENT_ID;
+                        ? provisioningConfig.client
+                        : MQTT_CLIENT_ID;
 
     topic = topic + "/" + device;
     if (!subTopic.startsWith("/"))

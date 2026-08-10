@@ -15,6 +15,7 @@
 #include <RF/general.h>
 #include <RF/receiver.h>
 #include <RF/transmitter.h>
+#include <LED/led.h>
 
 void setupSensors();
 void printMQ2();

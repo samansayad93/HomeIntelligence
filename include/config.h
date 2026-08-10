@@ -49,7 +49,8 @@ extern bool receivingIR;
 
 #define PIR_PIN 13
 
-#define BUZZER_PIN 12
+#define BUZZER_PIN 32
+#define STATUS_LED_PIN 34
 
 #define RF_RX_433_PIN 27
 #define RF_TX_433_PIN 26
@@ -60,10 +61,14 @@ extern bool receivingIR;
 #define IR_TX_PIN 25
 
 #define SENSOR_READ_INTERVAL 10000
-#define MQ2_PREHEAT_DURATION 40000
+#define MQ2_PREHEAT_DURATION 300000
 #define MQ2_READ_INTERVAL 10000
-#define MQ2_THRESHOLD 600
+#define MQ2_THRESHOLD 700
 
 #define BUZZER_DUTY_CYCLE_INTERVAL 2000
+
+#define STATUS_LED_ON 1000
+#define STATUS_LED_OFF 5000
+#define STATUS_LED_PULSE 500
 
 #endif

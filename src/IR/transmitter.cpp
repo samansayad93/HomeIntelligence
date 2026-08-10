@@ -28,5 +28,6 @@ bool transmitIRSignal(const IRSignal *signal)
         Serial.println("Transmitting RAW signal: ");
         irTransmitter.sendRaw(signal->rawData, signal->rawLength, 38);
     }
+    pulseStatusLED();
     return true;
 }

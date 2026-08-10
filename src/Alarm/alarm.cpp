@@ -15,14 +15,14 @@ void startAlarm()
     alarmActive = true;
     buzzerOn = true;
     lastBuzzerToggle = millis();
-    digitalWrite(BUZZER_PIN, HIGH);
+    digitalWrite(BUZZER_PIN, LOW);
 }
 
 void stopAlarm()
 {
     alarmActive = false;
     buzzerOn = false;
-    digitalWrite(BUZZER_PIN, LOW);
+    digitalWrite(BUZZER_PIN, HIGH);
 }
 
 void updateAlarm()
@@ -39,5 +39,5 @@ void updateAlarm()
 
     buzzerOn = !buzzerOn;
     lastBuzzerToggle = millis();
-    digitalWrite(BUZZER_PIN, buzzerOn ? HIGH : LOW);
+    digitalWrite(BUZZER_PIN, buzzerOn ? LOW : HIGH);
 }
