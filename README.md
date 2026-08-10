@@ -50,12 +50,17 @@ hard-coded into the firmware.
   and replay them.
 - **Local persistence** — all saved RF/IR signals and the provisioning profile are
   stored in LittleFS and survive reboots.
+- **Status LED** — a heartbeat LED blinks (1 s on / 5 s off) while the firmware is
+  running and gives a short 500 ms pulse whenever an RF/IR signal is captured or
+  transmitted, giving at-a-glance feedback that the board is alive and acting.
 - **Built-in alarm** — a buzzer that can be triggered manually, by gas threshold,
   or by motion.
 
 ## Hardware
 
-**Board:** ESP32 DevKit (any common 38-pin variant).
+**Board:** ESP32 DevKit (any common 38-pin variant). The full schematic and PCB
+layout are checked into [`hardware/`](hardware/) (`Main.SchDoc` / `Main.pdf`
+schematic, `PCB1.PcbDoc` board).
 
 | Part | Purpose |
 |------|---------|
@@ -64,6 +69,7 @@ hard-coded into the firmware.
 | MQ-2 | Combustible gas / smoke |
 | HC-SR501 (PIR) | Motion detection |
 | Active buzzer | Alarm |
+| Status LED | Heartbeat + capture/transmit pulse |
 | 433 MHz TX + RX pair (e.g. FS1000A / XY-MK-5V) | 433 MHz RF |
 | 315 MHz TX + RX pair | 315 MHz RF |
 | IR receiver (e.g. TSOP38238) + IR LED | Infrared capture & transmit |
@@ -78,7 +84,8 @@ hard-coded into the firmware.
 | LDR (analog) | **34** | Input-only ADC1 pin |
 | MQ-2 (analog AO) | **35** | Input-only ADC1 pin |
 | PIR OUT | **13** | |
-| Buzzer (+) | **12** | Active-high buzzer |
+| Buzzer (+) | **32** | Active-low drive (LOW = on) |
+| Status LED | **39** | Heartbeat + capture/transmit pulse |
 | IR receiver DATA | **14** | |
 | IR LED (transmit) | **25** | |
 | 433 MHz RX DATA | **27** | |
@@ -108,7 +115,8 @@ module orchestrates the others from `loop()`.
 | `Serial` | Text command parser (shared by Serial and MQTT) + `help` |
 | `RF` | Dual-band (433/315) RF capture & replay via RCSwitch |
 | `IR` | Infrared capture & replay via IRremoteESP8266 |
-| `Alarm` | Buzzer on/off + 2 s duty-cycle while alarming |
+| `Alarm` | Buzzer on/off + 2 s duty-cycle while alarming (active-low) |
+| `LED` | Status LED heartbeat + capture/transmit pulse |
 | `DHT`, `LDR`, `MQ2`, `PIR` | Individual sensor drivers |
 | `Memory` | LittleFS JSON load/save for RF, IR, and provisioning data |
 | `config` | Central pin map, MQTT topics, timing constants |
@@ -126,9 +134,9 @@ misconfigured network can be corrected without erasing flash. A broker-only outa
 (Wi-Fi up, broker down) does **not** trigger this — it just keeps retrying MQTT.
 
 `handleSensors()` polls for an in-progress RF/IR capture, ticks the alarm buzzer,
-optionally checks PIR motion, and every 10 s prints and publishes the sensor suite
-(LDR, temp, humidity, PIR). MQ-2 is read on its own 10 s cadence after a 40 s
-warm-up.
+ticks the status LED (heartbeat + any capture/transmit pulse), optionally checks
+PIR motion, and every 10 s prints and publishes the sensor suite (LDR, temp,
+humidity, PIR). MQ-2 is read on its own 10 s cadence after a 5 min warm-up.
 
 ## Project Structure
 
@@ -142,6 +150,7 @@ warm-up.
 │   ├── main.cpp
 │   └── <Module>/*.cpp
 ├── lib/                    # (project-local libraries, currently empty)
+├── hardware/               # Schematic (Main.SchDoc / Main.pdf) + PCB (PCB1.PcbDoc)
 ├── Website/                # Server-less browser dashboard (MQTT over WebSocket)
 ├── test/
 └── note.md                 # Developer to-do / known-bugs scratchpad
@@ -216,9 +225,9 @@ All tunables live in [`include/config.h`](include/config.h):
 - **MQTT** — `MQTT_BASE_TOPIC` (`homeintelligence`), broker host/port, client ID
   (`esp32-intelligence`, used as the per-device topic segment when no device name is
   provisioned), credentials (used only as a fallback; the portal overrides them).
-- **Timing** — sensor interval (10 s), MQ-2 preheat (40 s), MQ-2 threshold (700),
+- **Timing** — sensor interval (10 s), MQ-2 preheat (5 min), MQ-2 threshold (700),
   buzzer duty cycle (2 s), MQTT reconnect interval (1 s), Wi-Fi provisioning
-  fallback (30 s).
+  fallback (30 s), status LED heartbeat (1 s on / 5 s off, 500 ms pulse).
 
 ---
 

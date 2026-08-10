@@ -50,7 +50,7 @@ extern bool receivingIR;
 #define PIR_PIN 13
 
 #define BUZZER_PIN 32
-#define STATUS_LED_PIN 34
+#define STATUS_LED_PIN 39
 
 #define RF_RX_433_PIN 27
 #define RF_TX_433_PIN 26
