@@ -71,7 +71,7 @@ schematic, `PCB1.PcbDoc` board).
 | DHT11 | Temperature & humidity |
 | LDR (photoresistor) | Ambient light level |
 | MQ-2 | Combustible gas / smoke |
-| HC-SR501 (PIR) | Motion detection |
+| HC-SR505 (PIR) | Motion detection |
 | Active buzzer | Alarm |
 | Status LED | Heartbeat + capture/transmit pulse |
 | 433 MHz TX + RX pair (e.g. FS1000A / XY-MK-5V) | 433 MHz RF |

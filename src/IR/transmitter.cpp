@@ -24,6 +24,11 @@ bool transmitIRSignal(const IRSignal *signal)
         irTransmitter.sendSAMSUNG(signal->value, signal->bits);
         break;
 
+    case decode_type_t::PANASONIC:
+        Serial.println("Transmitting PANASONIC signal: ");
+        irTransmitter.sendPanasonic(signal->value, signal->bits);
+        break;
+
     default:
         Serial.println("Transmitting RAW signal: ");
         irTransmitter.sendRaw(signal->rawData, signal->rawLength, 38);

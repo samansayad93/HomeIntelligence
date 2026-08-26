@@ -5,7 +5,6 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include <DNSServer.h>
-#include <config.h>
 
 ProvisioningConfig provisioningConfig;
 

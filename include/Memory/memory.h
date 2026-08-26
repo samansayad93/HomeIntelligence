@@ -13,7 +13,4 @@ bool loadIRSignals();
 bool loadMotionDetection();
 bool saveMotionDetection(bool enabled);
 
-RFSignal *findRFSignalByName(const String &name);
-IRSignal *findIRSignalByName(const String &name);
-
 #endif

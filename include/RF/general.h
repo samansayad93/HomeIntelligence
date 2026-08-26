@@ -27,5 +27,6 @@ RCSwitch *getRFSwitch(uint16_t band);
 
 void setupRF();
 void listRFSignals();
+RFSignal *findRFSignalByName(const String &name);
 
 #endif

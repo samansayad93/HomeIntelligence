@@ -2,6 +2,7 @@
 #define PROVISIONING_H
 
 #include <Arduino.h>
+#include <config.h>
 
 struct ProvisioningConfig
 {

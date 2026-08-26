@@ -9,3 +9,12 @@ int readMQ2()
 {
     return analogRead(MQ2_PIN);
 }
+
+bool checkThreshold(int value)
+{
+    if (value > MQ2_THRESHOLD)
+    {
+        return true;
+    }
+    return false;
+}

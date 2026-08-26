@@ -19,6 +19,18 @@ void setupRF()
     rfSwitch315.enableTransmit(RF_TX_315_PIN);
 }
 
+RFSignal *findRFSignalByName(const String &name)
+{
+    for (size_t i = 0; i < signalCount; i++)
+    {
+        if (signals[i].name == name)
+        {
+            return &signals[i];
+        }
+    }
+    return nullptr;
+}
+
 void listRFSignals()
 {
     if (signalCount == 0)

@@ -109,7 +109,7 @@ static bool connectMQTT()
         return false;
     }
 
-    String commandTopic = topicFor("command");
+    String commandTopic = topicFor(MQTT_COMMAND_TOPIC);
     mqttClient.subscribe(commandTopic.c_str());
     Serial.print("MQTT subscribed: ");
     Serial.println(commandTopic);

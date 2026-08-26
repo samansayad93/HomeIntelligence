@@ -28,5 +28,6 @@ extern size_t irSignalCount;
 
 void setupIR();
 void listIRSignals();
+IRSignal *findIRSignalByName(const String &name);
 
 #endif

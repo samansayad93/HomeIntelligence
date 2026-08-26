@@ -3,6 +3,7 @@
 
 #include <config.h>
 
+void setupLDR();
 int readLDR();
 
 #endif
