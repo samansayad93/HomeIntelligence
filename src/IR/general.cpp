@@ -45,3 +45,15 @@ void listIRSignals()
         publishMQTT(MQTT_IR_SIGNAL_TOPIC, payload);
     }
 }
+
+IRSignal *findIRSignalByName(const String &name)
+{
+    for (size_t i = 0; i < irSignalCount; i++)
+    {
+        if (irSignals[i].name == name)
+        {
+            return &irSignals[i];
+        }
+    }
+    return nullptr;
+}

@@ -28,7 +28,8 @@ const char MQTT_TEMP_TOPIC[] = "sensor/TEMP";
 const char MQTT_HUM_TOPIC[] = "sensor/HUM";
 const char MQTT_PIR_TOPIC[] = "sensor/PIR";
 const char MQTT_MQ2_TOPIC[] = "sensor/MQ2";
-const char MQTT_Alarm_Topic[] = "alarm";
+const char MQTT_ALARM_TOPIC[] = "alarm";
+const char MQTT_COMMAND_TOPIC[] = "command";
 const char MQTT_RF_SIGNAL_TOPIC[] = "RF/list";
 const char MQTT_IR_SIGNAL_TOPIC[] = "IR/list";
 
@@ -50,7 +51,7 @@ extern bool receivingIR;
 #define PIR_PIN 13
 
 #define BUZZER_PIN 32
-#define STATUS_LED_PIN 34
+#define STATUS_LED_PIN 12
 
 #define RF_RX_433_PIN 27
 #define RF_TX_433_PIN 26
@@ -62,7 +63,7 @@ extern bool receivingIR;
 
 #define SENSOR_READ_INTERVAL 10000
 #define MQ2_PREHEAT_DURATION 300000
-#define MQ2_READ_INTERVAL 10000
+#define MQ2_READ_INTERVAL 15000
 #define MQ2_THRESHOLD 700
 
 #define BUZZER_DUTY_CYCLE_INTERVAL 2000

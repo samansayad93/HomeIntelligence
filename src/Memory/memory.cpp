@@ -3,10 +3,6 @@
 static bool ensureLittleFS()
 {
     static bool mounted = false;
-    if (mounted)
-    {
-        return true;
-    }
 
     mounted = LittleFS.begin(true);
     if (!mounted)
@@ -165,17 +161,6 @@ bool loadRFSignals()
     return true;
 }
 
-RFSignal *findRFSignalByName(const String &name)
-{
-    for (size_t i = 0; i < signalCount; i++)
-    {
-        if (signals[i].name == name)
-        {
-            return &signals[i];
-        }
-    }
-    return nullptr;
-}
 
 bool saveIRSignals()
 {
@@ -286,16 +271,4 @@ bool loadIRSignals()
     }
 
     return true;
-}
-
-IRSignal *findIRSignalByName(const String &name)
-{
-    for (size_t i = 0; i < irSignalCount; i++)
-    {
-        if (irSignals[i].name == name)
-        {
-            return &irSignals[i];
-        }
-    }
-    return nullptr;
 }

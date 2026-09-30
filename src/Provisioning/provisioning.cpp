@@ -5,78 +5,8 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include <DNSServer.h>
-#include <config.h>
 
 ProvisioningConfig provisioningConfig;
-
-static const char PROVISIONING_HTML[] PROGMEM = R"rawliteral(
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Device Setup</title>
-<style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:Arial,sans-serif;background:#f0f4f8;display:flex;justify-content:center;align-items:center;min-height:100vh;padding:16px}
-  .card{background:#fff;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.12);padding:32px;max-width:420px;width:100%}
-  h1{font-size:1.4rem;color:#1a202c;margin-bottom:8px}
-  p.sub{font-size:.875rem;color:#718096;margin-bottom:24px}
-  h2{font-size:.95rem;color:#4a5568;text-transform:uppercase;letter-spacing:.05em;margin:20px 0 12px}
-  label{display:block;font-size:.85rem;color:#4a5568;margin-bottom:4px}
-  input{width:100%;padding:10px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:.95rem;outline:none;transition:border .2s}
-  input:focus{border-color:#4299e1;box-shadow:0 0 0 3px rgba(66,153,225,.2)}
-  .row{margin-bottom:14px}
-  .hint{font-size:.78rem;color:#a0aec0;margin-top:3px}
-  button{width:100%;padding:12px;background:#4299e1;color:#fff;border:none;border-radius:8px;font-size:1rem;cursor:pointer;margin-top:24px;transition:background .2s}
-  button:hover{background:#3182ce}
-  .divider{height:1px;background:#e2e8f0;margin:20px 0}
-</style>
-</head>
-<body>
-<div class="card">
-  <h1>&#128279; Device Setup</h1>
-  <p class="sub">Configure your Wi-Fi and MQTT connection.</p>
-  <form method="POST" action="/save">
-    <h2>Wi-Fi</h2>
-    <div class="row">
-      <label for="ssid">SSID</label>
-      <input type="text" id="ssid" name="ssid" required placeholder="Network name" autocomplete="off">
-    </div>
-    <div class="row">
-      <label for="wpass">Password</label>
-      <input type="password" id="wpass" name="wpass" placeholder="Leave blank if open network">
-    </div>
-    <div class="divider"></div>
-    <h2>MQTT Broker</h2>
-    <div class="row">
-      <label for="mhost">Host / IP</label>
-      <input type="text" id="mhost" name="mhost" required placeholder="192.168.1.10" autocomplete="off">
-    </div>
-    <div class="row">
-      <label for="mport">Port</label>
-      <input type="number" id="mport" name="mport" value="1883" min="1" max="65535">
-    </div>
-    <div class="row">
-      <label for="muser">Username</label>
-      <input type="text" id="muser" name="muser" placeholder="Optional" autocomplete="off">
-    </div>
-    <div class="row">
-      <label for="mpass">Password</label>
-      <input type="password" id="mpass" name="mpass" placeholder="Optional">
-    </div>
-    <div class="divider"></div>
-    <h2>Client</h2>
-    <div class="row">
-        <label for="cid">Device</label>
-        <input type="text" id="cid" name="cid" placeholder="Device name">
-    </div>
-    <button type="submit">Save &amp; Restart</button>
-  </form>
-</div>
-</body>
-</html>
-)rawliteral";
 
 static const char SAVED_HTML[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>
@@ -199,9 +129,81 @@ bool isProvisioned()
     return loadProvisioningConfig();
 }
 
+// The setup form, prefilled with the current config so you can edit just the
+// broker or AP. Password fields are never echoed back; leaving them blank keeps
+// the existing password (on first boot "existing" is empty, i.e. open network).
+static String buildConfigPage()
+{
+    const String &ssid = provisioningConfig.wifiSSID;
+    const String &mhost = provisioningConfig.mqttHost;
+    uint16_t mport = provisioningConfig.mqttPort > 0
+                         ? provisioningConfig.mqttPort
+                         : 1883;
+    const String &muser = provisioningConfig.mqttUser;
+    const String &cid = provisioningConfig.client;
+
+    String html;
+    html.reserve(2048);
+    html += F(
+        "<!DOCTYPE html><html lang=\"en\"><head>"
+        "<meta charset=\"UTF-8\">"
+        "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">"
+        "<title>Device Setup</title><style>"
+        "*{box-sizing:border-box;margin:0;padding:0}"
+        "body{font-family:Arial,sans-serif;background:#f0f4f8;display:flex;justify-content:center;align-items:center;min-height:100vh;padding:16px}"
+        ".card{background:#fff;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.12);padding:32px;max-width:420px;width:100%}"
+        "h1{font-size:1.4rem;color:#1a202c;margin-bottom:8px}"
+        "p.sub{font-size:.875rem;color:#718096;margin-bottom:24px}"
+        "h2{font-size:.95rem;color:#4a5568;text-transform:uppercase;letter-spacing:.05em;margin:20px 0 12px}"
+        "label{display:block;font-size:.85rem;color:#4a5568;margin-bottom:4px}"
+        "input{width:100%;padding:10px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:.95rem;outline:none;transition:border .2s}"
+        "input:focus{border-color:#4299e1;box-shadow:0 0 0 3px rgba(66,153,225,.2)}"
+        ".row{margin-bottom:14px}"
+        ".hint{font-size:.78rem;color:#a0aec0;margin-top:3px}"
+        "button{width:100%;padding:12px;background:#4299e1;color:#fff;border:none;border-radius:8px;font-size:1rem;cursor:pointer;margin-top:24px;transition:background .2s}"
+        "button:hover{background:#3182ce}"
+        ".divider{height:1px;background:#e2e8f0;margin:20px 0}"
+        "</style></head><body><div class=\"card\">"
+        "<h1>&#128279; Device Setup</h1>"
+        "<p class=\"sub\">Configure your Wi-Fi and MQTT connection.</p>"
+        "<form method=\"POST\" action=\"/save\">"
+        "<h2>Wi-Fi</h2>"
+        "<div class=\"row\"><label for=\"ssid\">SSID</label>"
+        "<input type=\"text\" id=\"ssid\" name=\"ssid\" required placeholder=\"Network name\" autocomplete=\"off\" value=\"");
+    html += ssid;
+    html += F("\"></div>"
+             "<div class=\"row\"><label for=\"wpass\">Password</label>"
+             "<input type=\"password\" id=\"wpass\" name=\"wpass\" placeholder=\"Leave blank to keep current / open\">"
+             "<div class=\"hint\">Leave blank to keep the current password.</div></div>"
+             "<div class=\"divider\"></div><h2>MQTT Broker</h2>"
+             "<div class=\"row\"><label for=\"mhost\">Host / IP</label>"
+             "<input type=\"text\" id=\"mhost\" name=\"mhost\" required placeholder=\"192.168.1.10\" autocomplete=\"off\" value=\"");
+    html += mhost;
+    html += F("\"></div>"
+             "<div class=\"row\"><label for=\"mport\">Port</label>"
+             "<input type=\"number\" id=\"mport\" name=\"mport\" min=\"1\" max=\"65535\" value=\"");
+    html += String(mport);
+    html += F("\"></div>"
+             "<div class=\"row\"><label for=\"muser\">Username</label>"
+             "<input type=\"text\" id=\"muser\" name=\"muser\" placeholder=\"Optional\" autocomplete=\"off\" value=\"");
+    html += muser;
+    html += F("\"></div>"
+             "<div class=\"row\"><label for=\"mpass\">Password</label>"
+             "<input type=\"password\" id=\"mpass\" name=\"mpass\" placeholder=\"Leave blank to keep current / optional\">"
+             "<div class=\"hint\">Leave blank to keep the current password.</div></div>"
+             "<div class=\"divider\"></div><h2>Client</h2>"
+             "<div class=\"row\"><label for=\"cid\">Device</label>"
+             "<input type=\"text\" id=\"cid\" name=\"cid\" required placeholder=\"Device name\" value=\"");
+    html += cid;
+    html += F("\"></div>"
+             "<button type=\"submit\">Save &amp; Restart</button>"
+             "</form></div></body></html>");
+    return html;
+}
+
 static void handleRoot()
 {
-    server.send_P(200, "text/html", PROVISIONING_HTML);
+    server.send(200, "text/html", buildConfigPage());
 }
 
 static void redirectToPortal()
@@ -220,8 +222,18 @@ static void handleSave()
 {
     ProvisioningConfig cfg;
     cfg.wifiSSID = server.arg("ssid");
-    cfg.wifiPassword = server.arg("wpass");
     cfg.mqttHost = server.arg("mhost");
+    cfg.client = server.arg("cid");
+
+    // Keep existing credentials when the password fields are left blank so the
+    // page source never echoes them back.
+    cfg.wifiPassword = server.arg("wpass").length() > 0
+                           ? server.arg("wpass")
+                           : provisioningConfig.wifiPassword;
+    cfg.mqttPassword = server.arg("mpass").length() > 0
+                           ? server.arg("mpass")
+                           : provisioningConfig.mqttPassword;
+    cfg.mqttUser = server.arg("muser");
 
     String portStr = server.arg("mport");
     cfg.mqttPort = portStr.length() > 0 ? (uint16_t)portStr.toInt() : 1883;
@@ -229,10 +241,6 @@ static void handleSave()
     {
         cfg.mqttPort = 1883;
     }
-
-    cfg.mqttUser = server.arg("muser");
-    cfg.mqttPassword = server.arg("mpass");
-    cfg.client = server.arg("cid");
 
     if (cfg.wifiSSID.length() == 0 || cfg.mqttHost.length() == 0 || cfg.client.length() == 0)
     {
@@ -257,27 +265,30 @@ static void handleNotFound()
     redirectToPortal();
 }
 
-void runProvisioningPortal()
+// Always-on soft-AP configuration portal. The board runs in WIFI_AP_STA: it
+// joins the provisioned router as a station (for MQTT) AND continuously
+// broadcasts the `Intelligence-Setup` AP, so you can always connect to that SSID
+// and open http://192.168.4.1 to change the Wi-Fi AP / broker — even while the
+// board is correctly connected to the router. Non-blocking: call
+// startConfigAP() once in setup(), then handleConfigAP() in loop().
+void startConfigAP()
 {
-    Serial.println("Provisioning: starting AP...");
-
-    WiFi.mode(WIFI_AP);
+    WiFi.mode(WIFI_AP_STA);
     if (!WiFi.softAP(PROVISIONING_AP_SSID, PROVISIONING_AP_PASSWORD))
     {
-        Serial.println("Provisioning: softAP failed — verify AP password is 8-63 chars");
+        Serial.println("Config AP: softAP failed — verify AP password is 8-63 chars");
     }
 
     IPAddress apIP = WiFi.softAPIP();
-    Serial.print("Provisioning AP: ");
+    Serial.print("Config AP SSID: ");
     Serial.println(PROVISIONING_AP_SSID);
-    Serial.print("Provisioning URL: http://");
+    Serial.print("Config AP URL: http://");
     Serial.println(apIP);
 
     // Captive portal: capture every DNS query and point it at the AP IP so that
     // connecting clients auto-open the setup page (iOS / Android / Windows).
     dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
     dnsServer.start(53, "*", apIP);
-    Serial.println("Provisioning: captive portal active");
 
     server.on("/", HTTP_GET, handleRoot);
     // OS connectivity-check probes — redirecting them (instead of returning the
@@ -292,18 +303,18 @@ void runProvisioningPortal()
     server.on("/save", HTTP_POST, handleSave);
     server.onNotFound(handleNotFound);
     server.begin();
-    Serial.println("Provisioning: web server started");
+    Serial.println("Config AP: captive portal active");
+}
 
-    while (!provisioningDone)
+void handleConfigAP()
+{
+    if (provisioningDone)
     {
-        dnsServer.processNextRequest();
-        server.handleClient();
-        delay(2);
+        Serial.println("Config AP: saved, restarting...");
+        delay(1500);
+        ESP.restart();
     }
 
-    dnsServer.stop();
-    server.stop();
-    Serial.println("Provisioning: complete, restarting...");
-    delay(1500);
-    ESP.restart();
+    dnsServer.processNextRequest();
+    server.handleClient();
 }

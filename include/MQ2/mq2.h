@@ -5,5 +5,6 @@
 
 void setupMQ2();
 int readMQ2();
+bool checkThreshold(int value);
 
 #endif

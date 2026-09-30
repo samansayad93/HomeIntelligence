@@ -21,10 +21,7 @@ int readPIR()
     {
         return 1;
     }
-    else
-    {
-        return 0;
-    }
+    return 0;
 }
 
 void turnONMotionDetection()
@@ -42,7 +39,7 @@ void turnONMotionDetection()
     }
 
     Serial.println("Motion Detection: ON");
-    publishMQTT(MQTT_Alarm_Topic, "Motion Detection: ON", true);
+    publishMQTT(MQTT_ALARM_TOPIC, "Motion Detection: ON", true);
 }
 
 void turnOFFMotionDetection()
@@ -60,7 +57,7 @@ void turnOFFMotionDetection()
     }
 
     Serial.println("Motion Detection: OFF");
-    publishMQTT(MQTT_Alarm_Topic, "Motion Detection: OFF", true);
+    publishMQTT(MQTT_ALARM_TOPIC, "Motion Detection: OFF", true);
 }
 
 void checkMotionDetection()
@@ -75,7 +72,7 @@ void checkMotionDetection()
     {
         motionDetectionTriggered = true;
         Serial.println("Motion Detected!");
-        publishMQTT(MQTT_Alarm_Topic, "Motion Detected!");
+        publishMQTT(MQTT_ALARM_TOPIC, "Motion Detected!");
         startAlarm();
     }
 }

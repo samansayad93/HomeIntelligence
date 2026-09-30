@@ -1,7 +1,6 @@
 #include <Sensors/sensors.h>
 
 unsigned long lastSensorPrint = 0;
-unsigned long mq2ReadyAt = 0;
 unsigned long nextMQ2ReadAt = 0;
 
 void setupSensors()
@@ -12,8 +11,8 @@ void setupSensors()
     setupBuzzer();
     setupRF();
     setupIR();
-    mq2ReadyAt = millis() + MQ2_PREHEAT_DURATION;
-    nextMQ2ReadAt = mq2ReadyAt;
+    setupLDR();
+    nextMQ2ReadAt = millis() + MQ2_PREHEAT_DURATION;
     loadRFSignals();
     loadIRSignals();
     setupStatusLED();
@@ -23,29 +22,16 @@ void printMQ2()
 {
     unsigned long now = millis();
 
-    if (mq2ReadyAt == 0)
-    {
-        mq2ReadyAt = now + MQ2_PREHEAT_DURATION;
-        nextMQ2ReadAt = mq2ReadyAt;
-        Serial.println("MQ2 warming up...");
-        return;
-    }
-
-    if (now < mq2ReadyAt)
-    {
-        return;
-    }
-
     if (now < nextMQ2ReadAt)
     {
         return;
     }
 
     int gas = readMQ2();
-    if (gas > MQ2_THRESHOLD)
+    if (checkThreshold(gas))
     {
         Serial.println("MQ2 threshold exceeded!");
-        publishMQTT(MQTT_Alarm_Topic, "MQ2 threshold exceeded!");
+        publishMQTT(MQTT_ALARM_TOPIC, "MQ2 threshold exceeded!");
         startAlarm();
     }
     Serial.print("MQ2=");

@@ -17,10 +17,8 @@ void setup()
     Serial.begin(115200);
     delay(200);
 
-    if (!isProvisioned())
-    {
-        runProvisioningPortal();
-    }
+    loadProvisioningConfig();
+    startConfigAP();
 
     setupSensors();
     setupMQTT(handleMqttCommand);
@@ -31,5 +29,6 @@ void loop()
 {
     handleSerial();
     handleMQTT();
+    handleConfigAP();
     handleSensors();
 }

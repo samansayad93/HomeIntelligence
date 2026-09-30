@@ -9,8 +9,6 @@ void resetRFReceiver()
 
 bool readRFSignal(const String &name)
 {
-    // Both modules are always listening; whichever band actually receives
-    // the signal is the one that fired.
     RCSwitch *activeSwitch = nullptr;
     uint16_t band = 0;
 
